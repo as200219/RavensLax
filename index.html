@@ -994,7 +994,11 @@
             grid.innerHTML = '';
             const visible = players
                 .filter(p => p.name || p.jerseyNumber !== '' || p.audioFile)
-                .sort((a, b) => (parseInt(a.jerseyNumber) || 999) - (parseInt(b.jerseyNumber) || 999));
+                .sort((a, b) => {
+                    const na = a.jerseyNumber !== '' ? parseInt(a.jerseyNumber) : 999;
+                    const nb = b.jerseyNumber !== '' ? parseInt(b.jerseyNumber) : 999;
+                    return na - nb;
+                });
             visible.forEach(player => {
                 const btn = document.createElement('button');
                 btn.className = 'player-button' + (player.audioFile ? ' has-audio' : '');
