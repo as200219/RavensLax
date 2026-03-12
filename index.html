@@ -597,7 +597,7 @@
     </div>
 
     <!-- Version Footer -->
-    <div style="text-align:center;padding:12px 0 20px;opacity:0.4;font-size:11px;letter-spacing:0.05em;">v4.1</div>
+    <div style="text-align:center;padding:12px 0 20px;opacity:0.4;font-size:11px;letter-spacing:0.05em;">v4.2</div>
 
     <!-- Upload Progress Overlay -->
     <div id="uploadOverlay" class="upload-overlay">
@@ -1144,13 +1144,17 @@
         }
 
         function previewClip() {
-            const audio = document.getElementById('clipEditorAudio');
+            if (!currentClipPlayer) return;
             const start = parseFloat(document.getElementById('startTime').value) || 0;
             const end   = parseFloat(document.getElementById('endTime').value)   || 30;
             if (start >= end) { alert('Start time must be less than end time.'); return; }
-            audio.currentTime = start;
-            audio.play().catch(e => console.error(e));
-            setTimeout(() => audio.pause(), (end - start) * 1000);
+            // Pause the native editor player so it doesn't overlap
+            document.getElementById('clipEditorAudio').pause();
+            // Apply current editor times so playGoalSong uses them
+            currentClipPlayer.startTime = start;
+            currentClipPlayer.endTime   = end;
+            // Full horn + clip preview, same as soundboard
+            playGoalSong(currentClipPlayer.number);
         }
 
         async function saveClip() {
@@ -1294,7 +1298,7 @@
             }
         }
 
-        console.log('🎵 Ravens Goal Soundboard v4.1 — GitHub-powered sync');
+        console.log('🎵 Ravens Goal Soundboard v4.2 — GitHub-powered sync');
     </script>
 </body>
 </html>
