@@ -614,6 +614,7 @@
         const AUDIO_RAW_BASE = 'https://raw.githubusercontent.com/as200219/RavensLax/main/Ravens%20Goal%20Music/audio-files';
         const AUDIO_API_BASE = 'https://api.github.com/repos/as200219/RavensLax/contents/Ravens%20Goal%20Music/audio-files';
         const SETTINGS_FILE  = 'soundboard-settings.json';
+        const GOAL_HORN_FILE = 'carolina-hurricanes-goal-horn-made-with-Voicemod.mp3';
 
         // ==================== STATE ====================
         // players[0] = player number 1, players[29] = player number 30
@@ -957,35 +958,41 @@
             // Stop any other song that's currently playing
             stopCurrentAudio();
 
-            const url = getAudioUrl(player.audioFile);
-            const audio = new Audio(url);
-            audio.currentTime = player.startTime || 0;
-            currentAudio = audio;
             currentPlayingPlayer = playerNumber;
-
             const btn = document.getElementById('player_' + playerNumber);
-            if (btn) {
-                btn.classList.add('playing');
+            if (btn) btn.classList.add('playing');
+
+            const startClip = () => {
+                if (currentPlayingPlayer !== playerNumber) return; // was stopped during horn
+                const clipAudio = new Audio(getAudioUrl(player.audioFile));
+                clipAudio.currentTime = player.startTime || 0;
+                currentAudio = clipAudio;
                 const clipMs = ((player.endTime || 30) - (player.startTime || 0)) * 1000;
-                currentPulseTimeout = setTimeout(() => btn.classList.remove('playing'), Math.min(clipMs, 10000));
-            }
+                currentPulseTimeout = setTimeout(() => {
+                    if (btn) btn.classList.remove('playing');
+                }, Math.min(clipMs, 10000));
+                currentStopTimeout = setTimeout(() => {
+                    clipAudio.pause();
+                    clipAudio.currentTime = 0;
+                    currentAudio = null;
+                    currentPlayingPlayer = null;
+                    currentStopTimeout = null;
+                    currentPulseTimeout = null;
+                }, clipMs);
+                clipAudio.play().catch(e => {
+                    console.error('Clip playback failed:', e);
+                    stopCurrentAudio();
+                });
+            };
 
-            audio.play().catch(e => {
-                console.error('Playback failed:', e);
+            const hornAudio = new Audio(getAudioUrl(GOAL_HORN_FILE));
+            currentAudio = hornAudio;
+            hornAudio.addEventListener('ended', startClip);
+            hornAudio.play().catch(() => {
+                // Horn failed to load/play — skip straight to clip
                 currentAudio = null;
-                currentPlayingPlayer = null;
-                alert('Could not play audio. Make sure the file exists in the GitHub repository.');
+                startClip();
             });
-
-            const stopMs = ((player.endTime || 30) - (player.startTime || 0)) * 1000;
-            currentStopTimeout = setTimeout(() => {
-                audio.pause();
-                audio.currentTime = 0;
-                currentAudio = null;
-                currentPlayingPlayer = null;
-                currentStopTimeout = null;
-                currentPulseTimeout = null;
-            }, stopMs);
         }
 
         // ==================== PLAYER GRID ====================
