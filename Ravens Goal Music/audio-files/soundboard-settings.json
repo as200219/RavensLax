@@ -1,14 +1,238 @@
 {
   "version": "4.0",
-  "lastUpdated": "2026-03-12T22:23:30.617Z",
+  "lastUpdated": "2026-03-12T00:00:00.000Z",
   "players": [
     {
       "number": 1,
-      "name": "Cole",
-      "jerseyNumber": "18",
+      "name": "Alex Orndorff",
+      "jerseyNumber": "23",
       "audioFile": "Lynyrd Skynyrd - Free Bird (SPOTISAVER).mp3",
       "startTime": 55,
       "endTime": 60
+    },
+    {
+      "number": 2,
+      "name": "Carter Burns",
+      "jerseyNumber": "15",
+      "audioFile": "",
+      "startTime": 0,
+      "endTime": 30
+    },
+    {
+      "number": 3,
+      "name": "Carter Geoffrey",
+      "jerseyNumber": "29",
+      "audioFile": "",
+      "startTime": 0,
+      "endTime": 30
+    },
+    {
+      "number": 4,
+      "name": "Cavan Sheehan",
+      "jerseyNumber": "16",
+      "audioFile": "",
+      "startTime": 0,
+      "endTime": 30
+    },
+    {
+      "number": 5,
+      "name": "Chance Beattie",
+      "jerseyNumber": "13",
+      "audioFile": "",
+      "startTime": 0,
+      "endTime": 30
+    },
+    {
+      "number": 6,
+      "name": "Chase Freeman",
+      "jerseyNumber": "30",
+      "audioFile": "",
+      "startTime": 0,
+      "endTime": 30
+    },
+    {
+      "number": 7,
+      "name": "Cole Dirks",
+      "jerseyNumber": "17",
+      "audioFile": "",
+      "startTime": 0,
+      "endTime": 30
+    },
+    {
+      "number": 8,
+      "name": "Cole Sabourin",
+      "jerseyNumber": "18",
+      "audioFile": "",
+      "startTime": 0,
+      "endTime": 30
+    },
+    {
+      "number": 9,
+      "name": "Conner Andrews",
+      "jerseyNumber": "2",
+      "audioFile": "",
+      "startTime": 0,
+      "endTime": 30
+    },
+    {
+      "number": 10,
+      "name": "Evan Hatefi",
+      "jerseyNumber": "42",
+      "audioFile": "",
+      "startTime": 0,
+      "endTime": 30
+    },
+    {
+      "number": 11,
+      "name": "Gavin Melson",
+      "jerseyNumber": "27",
+      "audioFile": "",
+      "startTime": 0,
+      "endTime": 30
+    },
+    {
+      "number": 12,
+      "name": "Gray Goodwin",
+      "jerseyNumber": "6",
+      "audioFile": "",
+      "startTime": 0,
+      "endTime": 30
+    },
+    {
+      "number": 13,
+      "name": "Greyson Turner",
+      "jerseyNumber": "24",
+      "audioFile": "",
+      "startTime": 0,
+      "endTime": 30
+    },
+    {
+      "number": 14,
+      "name": "Griffin Kralic",
+      "jerseyNumber": "19",
+      "audioFile": "",
+      "startTime": 0,
+      "endTime": 30
+    },
+    {
+      "number": 15,
+      "name": "Hari Le Cheminant",
+      "jerseyNumber": "8",
+      "audioFile": "",
+      "startTime": 0,
+      "endTime": 30
+    },
+    {
+      "number": 16,
+      "name": "Jack Morrison",
+      "jerseyNumber": "5",
+      "audioFile": "",
+      "startTime": 0,
+      "endTime": 30
+    },
+    {
+      "number": 17,
+      "name": "Jack Oates",
+      "jerseyNumber": "7",
+      "audioFile": "",
+      "startTime": 0,
+      "endTime": 30
+    },
+    {
+      "number": 18,
+      "name": "Jack Thompson",
+      "jerseyNumber": "10",
+      "audioFile": "",
+      "startTime": 0,
+      "endTime": 30
+    },
+    {
+      "number": 19,
+      "name": "Kingston Adams",
+      "jerseyNumber": "3",
+      "audioFile": "",
+      "startTime": 0,
+      "endTime": 30
+    },
+    {
+      "number": 20,
+      "name": "Kip Hinson",
+      "jerseyNumber": "0",
+      "audioFile": "",
+      "startTime": 0,
+      "endTime": 30
+    },
+    {
+      "number": 21,
+      "name": "Logan Harmer",
+      "jerseyNumber": "20",
+      "audioFile": "",
+      "startTime": 0,
+      "endTime": 30
+    },
+    {
+      "number": 22,
+      "name": "Michael Menser",
+      "jerseyNumber": "25",
+      "audioFile": "",
+      "startTime": 0,
+      "endTime": 30
+    },
+    {
+      "number": 23,
+      "name": "Owen Morrison",
+      "jerseyNumber": "9",
+      "audioFile": "",
+      "startTime": 0,
+      "endTime": 30
+    },
+    {
+      "number": 24,
+      "name": "Quaid Harrell",
+      "jerseyNumber": "12",
+      "audioFile": "",
+      "startTime": 0,
+      "endTime": 30
+    },
+    {
+      "number": 25,
+      "name": "Reed Shuma",
+      "jerseyNumber": "1",
+      "audioFile": "",
+      "startTime": 0,
+      "endTime": 30
+    },
+    {
+      "number": 26,
+      "name": "Robert Wright",
+      "jerseyNumber": "22",
+      "audioFile": "",
+      "startTime": 0,
+      "endTime": 30
+    },
+    {
+      "number": 27,
+      "name": "Sam Campos",
+      "jerseyNumber": "28",
+      "audioFile": "",
+      "startTime": 0,
+      "endTime": 30
+    },
+    {
+      "number": 28,
+      "name": "Will Melson",
+      "jerseyNumber": "11",
+      "audioFile": "",
+      "startTime": 0,
+      "endTime": 30
+    },
+    {
+      "number": 29,
+      "name": "Will Stringer",
+      "jerseyNumber": "14",
+      "audioFile": "",
+      "startTime": 0,
+      "endTime": 30
     }
   ]
 }
