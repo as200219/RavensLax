@@ -1,6 +1,6 @@
 {
   "version": "4.0",
-  "lastUpdated": "2026-03-12T22:35:16.516Z",
+  "lastUpdated": "2026-03-12T22:37:28.982Z",
   "players": [
     {
       "number": 1,
@@ -159,8 +159,8 @@
       "name": "Kip Hinson",
       "jerseyNumber": "0",
       "audioFile": "Lynyrd Skynyrd - Free Bird (SPOTISAVER).mp3",
-      "startTime": 0,
-      "endTime": 30
+      "startTime": 287,
+      "endTime": 300
     },
     {
       "number": 21,
