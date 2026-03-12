@@ -457,7 +457,8 @@
 </head>
 <body>
 
-    <div class="header">
+    <div class="header" style="position:relative;">
+        <div style="position:absolute;top:0;right:0;opacity:0.5;font-size:13px;letter-spacing:0.05em;">v4.3</div>
         <h1 class="logo">🥍 Ravens Goal Soundboard</h1>
         <p style="text-align:center; opacity:0.8; margin-bottom:20px;">Ravenscroft Lacrosse Goal Music</p>
     </div>
@@ -597,8 +598,6 @@
     </div>
 
     <!-- Version Footer -->
-    <div style="text-align:center;padding:12px 0 20px;opacity:0.4;font-size:11px;letter-spacing:0.05em;">v4.2</div>
-
     <!-- Upload Progress Overlay -->
     <div id="uploadOverlay" class="upload-overlay">
         <div class="upload-progress-box">
@@ -1124,7 +1123,7 @@
             document.getElementById('startTime').value = player.startTime || 0;
             document.getElementById('endTime').value   = player.endTime   || 30;
             document.querySelector('.modal-title').innerHTML =
-                '✂️ Clip Editor — Player #' + playerNumber +
+                '✂️ Clip Editor — Jersey #' + esc(String(player.jerseyNumber)) +
                 (player.name ? ' (' + esc(player.name) + ')' : '');
 
             document.getElementById('clipModal').classList.add('active');
@@ -1298,7 +1297,7 @@
             }
         }
 
-        console.log('🎵 Ravens Goal Soundboard v4.2 — GitHub-powered sync');
+        console.log('🎵 Ravens Goal Soundboard v4.3 — GitHub-powered sync');
     </script>
 </body>
 </html>
