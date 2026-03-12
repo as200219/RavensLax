@@ -992,13 +992,16 @@
         function generatePlayerGrid() {
             const grid = document.getElementById('playerGrid');
             grid.innerHTML = '';
-            players.forEach(player => {
+            const visible = players
+                .filter(p => p.name || p.jerseyNumber !== '' || p.audioFile)
+                .sort((a, b) => (parseInt(a.jerseyNumber) || 999) - (parseInt(b.jerseyNumber) || 999));
+            visible.forEach(player => {
                 const btn = document.createElement('button');
                 btn.className = 'player-button' + (player.audioFile ? ' has-audio' : '');
                 btn.id = 'player_' + player.number;
                 btn.onclick = () => playGoalSong(player.number);
-                btn.innerHTML = '<div class="player-number">' + player.number + '</div>'
-                              + '<div class="player-name">' + esc(player.name || 'Player') + '</div>';
+                btn.innerHTML = '<div class="player-number">' + esc(String(player.jerseyNumber)) + '</div>'
+                              + '<div class="player-name">' + esc(player.name) + '</div>';
                 grid.appendChild(btn);
             });
         }
