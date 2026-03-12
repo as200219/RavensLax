@@ -667,6 +667,9 @@
         // ==================== INIT ====================
         document.addEventListener('DOMContentLoaded', async function() {
             setupPWA();
+            const validTabs = ['soundboard', 'upload', 'settings', 'roster'];
+            const hashTab = window.location.hash.replace('#', '');
+            showTab(validTabs.includes(hashTab) ? hashTab : 'soundboard');
             await loadFromGitHub();
             generatePlayerGrid();
             generateManageGrid();
@@ -1214,6 +1217,7 @@
             if (content) content.classList.add('active');
             const tab = document.querySelector('button[onclick="showTab(\'' + name + '\')"]');
             if (tab) tab.classList.add('active');
+            window.location.hash = name;
         }
 
         // ==================== STATUS ====================
