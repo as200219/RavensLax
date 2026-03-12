@@ -514,6 +514,10 @@
                         <div class="token-input-wrap">
                             <input type="password" id="githubToken" class="token-input"
                                    placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
+                                   autocomplete="off"
+                                   autocorrect="off"
+                                   autocapitalize="none"
+                                   spellcheck="false"
                                    value="">
                             <button class="token-toggle" onclick="toggleTokenVisibility()" title="Show/hide token">👁</button>
                         </div>
@@ -661,6 +665,10 @@
         let settingsSha    = null; // SHA of settings.json in GitHub (needed to update it)
         let currentClipPlayer = null;
         let deferredPrompt;
+        let currentAudio = null;
+        let currentPlayingPlayer = null;
+        let currentStopTimeout = null;
+        let currentPulseTimeout = null;
 
         // ==================== GITHUB HELPERS ====================
         function getToken() {
@@ -959,28 +967,64 @@
         }
 
         // ==================== PLAYBACK ====================
+        function stopCurrentAudio() {
+            if (currentAudio) {
+                currentAudio.pause();
+                currentAudio = null;
+            }
+            clearTimeout(currentStopTimeout);
+            clearTimeout(currentPulseTimeout);
+            currentStopTimeout = null;
+            currentPulseTimeout = null;
+            if (currentPlayingPlayer) {
+                const prevBtn = document.getElementById('player_' + currentPlayingPlayer);
+                if (prevBtn) prevBtn.classList.remove('playing');
+            }
+            currentPlayingPlayer = null;
+        }
+
         function playGoalSong(playerNumber) {
             const player = players[playerNumber - 1];
             if (!player || !player.audioFile) return;
 
+            // Toggle off if this player is already playing
+            if (currentPlayingPlayer === playerNumber) {
+                stopCurrentAudio();
+                return;
+            }
+
+            // Stop any other song that's currently playing
+            stopCurrentAudio();
+
             const url = getAudioUrl(player.audioFile);
             const audio = new Audio(url);
             audio.currentTime = player.startTime || 0;
+            currentAudio = audio;
+            currentPlayingPlayer = playerNumber;
 
             const btn = document.getElementById('player_' + playerNumber);
             if (btn) {
                 btn.classList.add('playing');
                 const clipMs = ((player.endTime || 30) - (player.startTime || 0)) * 1000;
-                setTimeout(() => btn.classList.remove('playing'), Math.min(clipMs, 10000));
+                currentPulseTimeout = setTimeout(() => btn.classList.remove('playing'), Math.min(clipMs, 10000));
             }
 
             audio.play().catch(e => {
                 console.error('Playback failed:', e);
+                currentAudio = null;
+                currentPlayingPlayer = null;
                 alert('Could not play audio. Make sure the file exists in the GitHub repository.');
             });
 
             const stopMs = ((player.endTime || 30) - (player.startTime || 0)) * 1000;
-            setTimeout(() => { audio.pause(); audio.currentTime = 0; }, stopMs);
+            currentStopTimeout = setTimeout(() => {
+                audio.pause();
+                audio.currentTime = 0;
+                currentAudio = null;
+                currentPlayingPlayer = null;
+                currentStopTimeout = null;
+                currentPulseTimeout = null;
+            }, stopMs);
         }
 
         // ==================== PLAYER GRID ====================
