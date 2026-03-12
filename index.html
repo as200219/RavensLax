@@ -458,7 +458,7 @@
 <body>
 
     <div class="header" style="position:relative;">
-        <div style="position:absolute;top:0;right:0;opacity:0.5;font-size:13px;letter-spacing:0.05em;">v4.3</div>
+        <div style="position:absolute;top:0;right:0;opacity:0.5;font-size:13px;letter-spacing:0.05em;">v4.4</div>
         <h1 class="logo">🥍 Ravens Goal Soundboard</h1>
         <p style="text-align:center; opacity:0.8; margin-bottom:20px;">Ravenscroft Lacrosse Goal Music</p>
     </div>
@@ -963,9 +963,18 @@
             const btn = document.getElementById('player_' + playerNumber);
             if (btn) btn.classList.add('playing');
 
+            // Create clip audio NOW during the user gesture so iOS allows play() later
+            const clipAudio = new Audio(getAudioUrl(player.audioFile));
+            // Unlock on iOS: silent play then immediate pause primes the element
+            clipAudio.muted = true;
+            clipAudio.play().then(() => {
+                clipAudio.pause();
+                clipAudio.muted = false;
+                clipAudio.currentTime = player.startTime || 0;
+            }).catch(() => { clipAudio.muted = false; });
+
             const startClip = () => {
                 if (currentPlayingPlayer !== playerNumber) return; // was stopped during horn
-                const clipAudio = new Audio(getAudioUrl(player.audioFile));
                 clipAudio.currentTime = player.startTime || 0;
                 currentAudio = clipAudio;
                 const clipMs = ((player.endTime || 30) - (player.startTime || 0)) * 1000;
@@ -993,9 +1002,7 @@
                 const fadeSec    = 2;  // horn fades out over last 2 seconds
                 const clipStartMs = Math.max(0, (hornAudio.duration - overlapSec) * 1000);
                 const fadeStartMs = Math.max(0, (hornAudio.duration - fadeSec) * 1000);
-                // Start clip 3s before horn ends
                 setTimeout(startClip, clipStartMs);
-                // Start fade 2s before horn ends
                 setTimeout(() => {
                     const steps = 20;
                     let step = 0;
@@ -1143,17 +1150,13 @@
         }
 
         function previewClip() {
-            if (!currentClipPlayer) return;
+            const audio = document.getElementById('clipEditorAudio');
             const start = parseFloat(document.getElementById('startTime').value) || 0;
             const end   = parseFloat(document.getElementById('endTime').value)   || 30;
             if (start >= end) { alert('Start time must be less than end time.'); return; }
-            // Pause the native editor player so it doesn't overlap
-            document.getElementById('clipEditorAudio').pause();
-            // Apply current editor times so playGoalSong uses them
-            currentClipPlayer.startTime = start;
-            currentClipPlayer.endTime   = end;
-            // Full horn + clip preview, same as soundboard
-            playGoalSong(currentClipPlayer.number);
+            audio.currentTime = start;
+            audio.play().catch(e => console.error(e));
+            setTimeout(() => audio.pause(), (end - start) * 1000);
         }
 
         async function saveClip() {
@@ -1297,7 +1300,7 @@
             }
         }
 
-        console.log('🎵 Ravens Goal Soundboard v4.3 — GitHub-powered sync');
+        console.log('🎵 Ravens Goal Soundboard v4.4 — GitHub-powered sync');
     </script>
 </body>
 </html>
