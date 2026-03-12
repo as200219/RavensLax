@@ -1,0 +1,1628 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ravens Goal Soundboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a2e1a, #163e21, #0f4d1a);
+            color: #f5e6a8;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .logo {
+            font-size: 2.5em;
+            font-weight: bold;
+            background: linear-gradient(45deg, #2d5a36, #f5e6a8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+        }
+        
+        .tabs {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 30px;
+            background: rgba(45, 90, 54, 0.3);
+            border-radius: 15px;
+            padding: 5px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(245, 230, 168, 0.2);
+        }
+        
+        .tab {
+            flex: 1;
+            padding: 15px 20px;
+            text-align: center;
+            border: none;
+            background: transparent;
+            color: rgba(245, 230, 168, 0.7);
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+        
+        .tab.active {
+            background: rgba(45, 90, 54, 0.6);
+            color: #f5e6a8;
+            box-shadow: 0 4px 15px rgba(45, 90, 54, 0.3);
+        }
+        
+        .content {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        /* Soundboard Grid */
+        .soundboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .player-button {
+            aspect-ratio: 1;
+            background: linear-gradient(135deg, #2d5a36 0%, #1f3d25 100%);
+            border: none;
+            border-radius: 20px;
+            color: #f5e6a8;
+            font-weight: bold;
+            font-size: 18px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+            position: relative;
+            overflow: hidden;
+            border: 2px solid rgba(245, 230, 168, 0.3);
+        }
+        
+        .player-button:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(45, 90, 54, 0.4);
+            border-color: rgba(245, 230, 168, 0.6);
+        }
+        
+        .player-button.has-audio {
+            background: linear-gradient(135deg, #3d6b45 0%, #5a8f62 100%);
+            border-color: #f5e6a8;
+        }
+        
+        .player-button.has-audio::before {
+            content: "♪";
+            position: absolute;
+            top: 5px;
+            right: 8px;
+            font-size: 14px;
+            opacity: 0.8;
+        }
+        
+        .stop-button {
+            grid-column: 1 / -1;
+            padding: 20px;
+            background: linear-gradient(135deg, #ff4757 0%, #ff3838 100%);
+            border: none;
+            border-radius: 15px;
+            color: white;
+            font-size: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 25px rgba(255, 71, 87, 0.3);
+        }
+        
+        /* Roster */
+        .roster-grid {
+            display: grid;
+            gap: 15px;
+        }
+        
+        .player-row {
+            background: rgba(45, 90, 54, 0.2);
+            border-radius: 15px;
+            padding: 20px;
+            display: grid;
+            grid-template-columns: 60px 1fr 200px 100px;
+            align-items: center;
+            gap: 15px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(245, 230, 168, 0.1);
+        }
+        
+        .player-row.has-audio {
+            background: rgba(45, 90, 54, 0.4);
+            border: 2px solid rgba(245, 230, 168, 0.5);
+        }
+        
+        .jersey-number {
+            font-size: 24px;
+            font-weight: bold;
+            text-align: center;
+            background: rgba(245, 230, 168, 0.2);
+            border-radius: 10px;
+            padding: 10px;
+            color: #f5e6a8;
+            border: 1px solid rgba(245, 230, 168, 0.3);
+        }
+        
+        .player-name {
+            font-size: 18px;
+            font-weight: 500;
+        }
+        
+        .song-info {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.8);
+            text-align: center;
+        }
+        
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+        }
+        
+        .upload-btn, .edit-btn {
+            background: linear-gradient(135deg, #2d5a36 0%, #1f3d25 100%);
+            border: none;
+            padding: 8px 15px;
+            border-radius: 8px;
+            color: #f5e6a8;
+            cursor: pointer;
+            font-size: 12px;
+            border: 1px solid rgba(245, 230, 168, 0.3);
+        }
+        
+        .edit-btn {
+            background: linear-gradient(135deg, #3d6b45 0%, #5a8f62 100%);
+            border-color: #f5e6a8;
+        }
+        
+        .file-input-wrapper input[type=file] {
+            position: absolute;
+            left: -9999px;
+        }
+        
+        /* Clip Editor Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(5px);
+        }
+        
+        .modal-content {
+            background: linear-gradient(135deg, #1a2e1a, #163e21);
+            margin: 5% auto;
+            padding: 30px;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+            border: 2px solid rgba(245, 230, 168, 0.3);
+        }
+        
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            line-height: 1;
+        }
+        
+        .close:hover {
+            color: white;
+        }
+        
+        .waveform-container {
+            position: relative;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            height: 120px;
+        }
+        
+        .waveform {
+            width: 100%;
+            height: 80px;
+            background: #333;
+            border-radius: 5px;
+        }
+        
+        .playhead {
+            position: absolute;
+            top: 20px;
+            bottom: 20px;
+            width: 3px;
+            background: #00ff88;
+            box-shadow: 0 0 10px #00ff88;
+            pointer-events: none;
+            z-index: 10;
+        }
+        
+        .control-group {
+            margin: 20px 0;
+        }
+        
+        .control-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #ccc;
+        }
+        
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .slider {
+            flex: 1;
+            height: 8px;
+            border-radius: 5px;
+            background: #555;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+        
+        .time-display {
+            font-family: monospace;
+            color: #4ecdc4;
+            min-width: 80px;
+            text-align: center;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 30px;
+        }
+        
+        .btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        .audio-hint {
+            background: rgba(255, 193, 7, 0.2);
+            border: 1px solid rgba(255, 193, 7, 0.5);
+            border-radius: 10px;
+            padding: 15px;
+            margin: 15px 0;
+            text-align: center;
+            font-size: 14px;
+            color: #ffc107;
+        }
+        
+        /* Settings */
+        .settings-group {
+            background: rgba(45, 90, 54, 0.2);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(245, 230, 168, 0.2);
+        }
+        
+        .settings-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .settings-row:last-child {
+            margin-bottom: 0;
+        }
+        
+        .unlock-status {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .unlock-status.unlocked {
+            background: rgba(17, 153, 142, 0.3);
+            color: #38ef7d;
+        }
+        
+        /* Mobile and Tablet Optimizations */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            
+            .header {
+                margin-bottom: 20px;
+            }
+            
+            .logo {
+                font-size: 2em;
+            }
+            
+            .tabs {
+                margin-bottom: 20px;
+            }
+            
+            .tab {
+                padding: 12px 15px;
+                font-size: 14px;
+            }
+            
+            .soundboard-grid {
+                grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+                gap: 12px;
+            }
+            
+            .player-button {
+                font-size: 16px;
+                min-height: 60px;
+                border-radius: 15px;
+            }
+            
+            .player-row {
+                grid-template-columns: 50px 1fr 100px;
+                gap: 12px;
+                padding: 15px;
+            }
+            
+            .song-info {
+                grid-column: 1 / -1;
+                margin-top: 10px;
+                font-size: 13px;
+            }
+            
+            .upload-btn, .edit-btn {
+                padding: 10px 15px;
+                font-size: 13px;
+                min-height: 40px;
+            }
+            
+            .modal-content {
+                width: 95%;
+                margin: 2% auto;
+                padding: 20px;
+                max-height: 90vh;
+            }
+        }
+        
+        /* Tablet Portrait and Large Phone Landscape */
+        @media (min-width: 769px) and (max-width: 1024px) {
+            .soundboard-grid {
+                grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+                gap: 15px;
+            }
+            
+            .player-button {
+                font-size: 18px;
+            }
+            
+            .player-row {
+                grid-template-columns: 60px 1fr 180px 120px;
+                padding: 18px;
+            }
+        }
+        
+        /* Landscape Phone Optimization */
+        @media (max-width: 768px) and (orientation: landscape) {
+            .header {
+                margin-bottom: 15px;
+            }
+            
+            .logo {
+                font-size: 1.8em;
+            }
+            
+            .soundboard-grid {
+                grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+                gap: 10px;
+            }
+            
+            .player-button {
+                font-size: 14px;
+                min-height: 50px;
+            }
+        }
+        
+        /* Touch Device Enhancements */
+        @media (hover: none) and (pointer: coarse) {
+            .player-button {
+                min-height: 60px;
+                font-size: 18px;
+            }
+            
+            .tab {
+                min-height: 48px;
+            }
+            
+            .upload-btn, .edit-btn {
+                min-height: 44px;
+                padding: 12px 16px;
+            }
+            
+            .slider {
+                height: 12px;
+            }
+            
+            .slider::-webkit-slider-thumb {
+                width: 24px;
+                height: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">🥍 RAVENS GOAL MUSIC</div>
+        <p>Ravenscroft Varsity Lacrosse Soundboard</p>
+    </div>
+    
+    <div class="tabs">
+        <button class="tab active" onclick="switchTab('soundboard')">🎵 Soundboard</button>
+        <button class="tab" onclick="switchTab('roster')">👥 Roster</button>
+        <button class="tab" onclick="switchTab('settings')">⚙️ Settings</button>
+    </div>
+    
+    <div class="content">
+        <!-- Soundboard Tab -->
+        <div id="soundboard" class="tab-content active">
+            <div class="unlock-status" id="unlockStatus">
+                🔊 Tap anywhere to unlock audio playback
+            </div>
+            <button class="stop-button" onclick="stopAllAudio()">🛑 STOP ALL AUDIO</button>
+            <div class="soundboard-grid" id="soundboardGrid">
+                <!-- Player buttons will be generated here -->
+            </div>
+        </div>
+        
+        <!-- Roster Tab -->
+        <div id="roster" class="tab-content">
+            <div class="roster-grid" id="rosterGrid">
+                <!-- Player rows will be generated here -->
+            </div>
+        </div>
+        
+        <!-- Settings Tab -->
+        <div id="settings" class="tab-content">
+            <div class="settings-group">
+                <h3>Audio Settings</h3>
+                <div class="settings-row">
+                    <label>Default Clip Duration (seconds):</label>
+                    <input type="number" id="defaultDuration" value="15" min="1" max="60">
+                </div>
+                <div class="settings-row">
+                    <label>Fade Out Duration (seconds):</label>
+                    <input type="number" id="fadeDuration" value="2" min="0" max="5">
+                </div>
+            </div>
+            <div class="settings-group">
+                <h3>Data Management</h3>
+                <button class="btn btn-primary" onclick="exportData()">Export Roster Data</button>
+                <button class="btn btn-primary" onclick="document.getElementById('importFile').click()">Import Roster Data</button>
+                <input type="file" id="importFile" accept=".json" style="display:none;" onchange="importData(this)">
+                <button class="btn" onclick="clearAllData()" style="background:#ff4757;">Clear All Data</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Clip Editor Modal -->
+    <div id="clipEditorModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeClipEditor()">&times;</span>
+            <h2>Edit Audio Clip</h2>
+            <p id="editingPlayerInfo"></p>
+            
+            <div class="audio-hint" id="audioHint">
+                🎵 Adjust sliders and the audio will preview automatically
+            </div>
+            
+            <div class="waveform-container">
+                <canvas class="waveform" id="waveform" width="760" height="80"></canvas>
+                <div class="playhead" id="playhead"></div>
+            </div>
+            
+            <div class="control-group">
+                <label>Start Position (drag to hear preview):</label>
+                <div class="slider-container">
+                    <input type="range" id="startSlider" class="slider" min="0" max="100" value="0">
+                    <div class="time-display" id="startTime">0:00</div>
+                    <div class="time-display" id="totalTime">0:00</div>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <label>Clip Length:</label>
+                <div class="slider-container">
+                    <input type="range" id="lengthSlider" class="slider" min="1" max="30" value="15">
+                    <div class="time-display" id="lengthTime">15s</div>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <label>Quick Navigation:</label>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 10px;">
+                    <button class="btn btn-primary" onclick="jumpToPosition(0)" style="padding: 8px 12px; font-size: 12px;">⏮️ Start</button>
+                    <button class="btn btn-primary" onclick="jumpToPosition(25)" style="padding: 8px 12px; font-size: 12px;">🎵 25%</button>
+                    <button class="btn btn-primary" onclick="jumpToPosition(50)" style="padding: 8px 12px; font-size: 12px;">🎶 50%</button>
+                    <button class="btn btn-primary" onclick="jumpToPosition(75)" style="padding: 8px 12px; font-size: 12px;">🎸 75%</button>
+                    <button class="btn btn-primary" onclick="jumpToPosition(100)" style="padding: 8px 12px; font-size: 12px;">⏭️ End</button>
+                </div>
+            </div>
+            
+            <div class="button-group">
+                <button class="btn btn-primary" onclick="previewFullClip()">🎵 Preview Full Clip</button>
+                <button class="btn btn-success" onclick="saveClipSettings()">💾 Save Clip Settings</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Global variables
+        let audioContext = null;
+        let currentAudio = null;
+        let isAudioUnlocked = false;
+        let players = [];
+        let currentEditingPlayer = null;
+        let clipEditorAudio = null;
+        let isPlaying = false;
+        let playbackStartTime = 0;
+        let animationFrame = null;
+        let audioDatabase = null;
+        
+        // Default roster
+        const defaultRoster = [
+            {number: "0", name: "Kip Hinson"},
+            {number: "1", name: "Reed Shuma"},
+            {number: "2", name: "Conner Andrews"},
+            {number: "3", name: "Kingston Adams"},
+            {number: "5", name: "Jack Morrison"},
+            {number: "6", name: "Gray Goodwin"},
+            {number: "7", name: "Jack Oates"},
+            {number: "8", name: "Hari Le Cheminant"},
+            {number: "9", name: "Owen Morrison"},
+            {number: "10", name: "Jack Thompson"},
+            {number: "11", name: "Will Melson"},
+            {number: "12", name: "Quaid Harrell"},
+            {number: "13", name: "Chance Beattie"},
+            {number: "14", name: "Will Stringer"},
+            {number: "15", name: "Carter Burns"},
+            {number: "16", name: "Cavan Sheehan"},
+            {number: "17", name: "Cole Dirks"},
+            {number: "18", name: "Cole Sabourin"},
+            {number: "19", name: "Griffin Kralic"},
+            {number: "20", name: "Logan Harmer"},
+            {number: "22", name: "Robert Wright"},
+            {number: "23", name: "Alex Orndorff"},
+            {number: "24", name: "Greyson Turner"},
+            {number: "25", name: "Michael Menser"},
+            {number: "27", name: "Gavin Melson"},
+            {number: "28", name: "Sam Campos"},
+            {number: "29", name: "Carter Geoffrey"},
+            {number: "30", name: "Chase Freeman"},
+            {number: "42", name: "Evan Hatefi"}
+        ];
+        
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeAudio();
+            initializeDatabase().then(() => {
+                loadPlayers();
+                renderSoundboard();
+                renderRoster();
+            }).catch(error => {
+                console.error('Database initialization failed:', error);
+                // Fallback to localStorage for smaller files
+                loadPlayers();
+                renderSoundboard();
+                renderRoster();
+            });
+            
+            // Global click handler to unlock audio
+            document.addEventListener('click', unlockAudio, { once: true });
+            document.addEventListener('touchstart', unlockAudio, { once: true });
+        });
+        
+        // Initialize IndexedDB for large audio file storage
+        function initializeDatabase() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open('RavensSoundboard', 1);
+                
+                request.onerror = function() {
+                    console.error('IndexedDB failed to open');
+                    reject(request.error);
+                };
+                
+                request.onsuccess = function() {
+                    audioDatabase = request.result;
+                    console.log('✅ IndexedDB initialized successfully');
+                    resolve(audioDatabase);
+                };
+                
+                request.onupgradeneeded = function(event) {
+                    const db = event.target.result;
+                    if (!db.objectStoreNames.contains('audioFiles')) {
+                        const store = db.createObjectStore('audioFiles', { keyPath: 'playerNumber' });
+                        console.log('✅ IndexedDB object store created');
+                    }
+                };
+            });
+        }
+        
+        // Store audio file in IndexedDB
+        function storeAudioFile(playerNumber, audioBlob, metadata) {
+            return new Promise((resolve, reject) => {
+                if (!audioDatabase) {
+                    console.log('⚠️ IndexedDB not available, using localStorage fallback');
+                    resolve(null);
+                    return;
+                }
+                
+                const transaction = audioDatabase.transaction(['audioFiles'], 'readwrite');
+                const store = transaction.objectStore('audioFiles');
+                
+                const data = {
+                    playerNumber: playerNumber,
+                    audioBlob: audioBlob,
+                    metadata: metadata,
+                    timestamp: Date.now()
+                };
+                
+                const request = store.put(data);
+                
+                request.onsuccess = function() {
+                    console.log('✅ Audio file stored in IndexedDB for player:', playerNumber);
+                    resolve(data);
+                };
+                
+                request.onerror = function() {
+                    console.error('❌ Failed to store audio file:', request.error);
+                    reject(request.error);
+                };
+            });
+        }
+        
+        // Retrieve audio file from IndexedDB
+        function getAudioFile(playerNumber) {
+            return new Promise((resolve, reject) => {
+                if (!audioDatabase) {
+                    resolve(null);
+                    return;
+                }
+                
+                const transaction = audioDatabase.transaction(['audioFiles'], 'readonly');
+                const store = transaction.objectStore('audioFiles');
+                const request = store.get(playerNumber);
+                
+                request.onsuccess = function() {
+                    resolve(request.result);
+                };
+                
+                request.onerror = function() {
+                    console.error('❌ Failed to retrieve audio file:', request.error);
+                    reject(request.error);
+                };
+            });
+        }
+        
+        // Delete audio file from IndexedDB
+        function deleteAudioFile(playerNumber) {
+            return new Promise((resolve, reject) => {
+                if (!audioDatabase) {
+                    resolve();
+                    return;
+                }
+                
+                const transaction = audioDatabase.transaction(['audioFiles'], 'readwrite');
+                const store = transaction.objectStore('audioFiles');
+                const request = store.delete(playerNumber);
+                
+                request.onsuccess = function() {
+                    console.log('✅ Audio file deleted from IndexedDB for player:', playerNumber);
+                    resolve();
+                };
+                
+                request.onerror = function() {
+                    console.error('❌ Failed to delete audio file:', request.error);
+                    reject(request.error);
+                };
+            });
+        }
+        
+        // Initialize Web Audio API
+        function initializeAudio() {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+        
+        // Unlock audio for iOS
+        function unlockAudio() {
+            if (isAudioUnlocked) return;
+            
+            try {
+                // Create a silent audio buffer and play it
+                const buffer = audioContext.createBuffer(1, 1, 22050);
+                const source = audioContext.createBufferSource();
+                source.buffer = buffer;
+                source.connect(audioContext.destination);
+                source.start(0);
+                
+                isAudioUnlocked = true;
+                document.getElementById('unlockStatus').textContent = '✅ Audio unlocked - Ready for game day!';
+                document.getElementById('unlockStatus').classList.add('unlocked');
+            } catch (e) {
+                console.log('Audio unlock failed:', e);
+            }
+        }
+        
+        // Load players from localStorage
+        function loadPlayers() {
+            const saved = localStorage.getItem('ravensSoundboardPlayers');
+            if (saved) {
+                players = JSON.parse(saved);
+            } else {
+                // Initialize with default roster
+                players = defaultRoster.map(p => ({
+                    ...p,
+                    audioData: null,
+                    songTitle: '',
+                    startTime: 0,
+                    clipLength: 15
+                }));
+                savePlayers();
+            }
+        }
+        
+        // Save players to localStorage (now saves metadata only)
+        function savePlayers() {
+            localStorage.setItem('ravensSoundboardPlayers', JSON.stringify(players));
+        }
+        
+        // Save only player metadata to localStorage (not audio data)
+        function savePlayersMetadata() {
+            const playersMetadata = players.map(p => ({
+                number: p.number,
+                name: p.name,
+                songTitle: p.songTitle,
+                startTime: p.startTime,
+                clipLength: p.clipLength,
+                hasAudio: p.hasAudio || (p.audioData && p.audioData !== 'stored_in_indexeddb'),
+                audioStored: p.audioData === 'stored_in_indexeddb' ? 'indexeddb' : (p.audioData ? 'localstorage' : null)
+            }));
+            localStorage.setItem('ravensSoundboardPlayers', JSON.stringify(playersMetadata));
+        }
+        
+        // Switch tabs
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            document.querySelector(`[onclick="switchTab('${tabName}')"]`).classList.add('active');
+            document.getElementById(tabName).classList.add('active');
+        }
+        
+        // Render soundboard
+        function renderSoundboard() {
+            const grid = document.getElementById('soundboardGrid');
+            
+            players.sort((a, b) => parseInt(a.number) - parseInt(b.number)).forEach(player => {
+                const button = document.createElement('button');
+                button.className = `player-button ${player.audioData ? 'has-audio' : ''}`;
+                button.textContent = player.number;
+                button.title = `${player.name}${player.songTitle ? ' - ' + player.songTitle : ''}`;
+                button.onclick = () => playGoalSong(player);
+                grid.appendChild(button);
+            });
+        }
+        
+        // Render roster
+        function renderRoster() {
+            const grid = document.getElementById('rosterGrid');
+            grid.innerHTML = '';
+            
+            players.sort((a, b) => parseInt(a.number) - parseInt(b.number)).forEach(player => {
+                const row = document.createElement('div');
+                row.className = `player-row ${player.audioData ? 'has-audio' : ''}`;
+                
+                let songInfo = 'No song selected';
+                if (player.audioData && player.songTitle) {
+                    const startMin = Math.floor(player.startTime / 60);
+                    const startSec = Math.floor(player.startTime % 60);
+                    const endTime = player.startTime + player.clipLength;
+                    const endMin = Math.floor(endTime / 60);
+                    const endSec = Math.floor(endTime % 60);
+                    songInfo = `${player.songTitle} (${startMin}:${startSec.toString().padStart(2, '0')} to ${endMin}:${endSec.toString().padStart(2, '0')})`;
+                }
+                
+                row.innerHTML = `
+                    <div class="jersey-number">${player.number}</div>
+                    <div class="player-name">${player.name}</div>
+                    <div class="song-info">${songInfo}</div>
+                    <div>
+                        ${!player.audioData ? 
+                            `<div class="file-input-wrapper">
+                                <button class="upload-btn" onclick="document.getElementById('file_${player.number}').click()">Upload</button>
+                                <input type="file" id="file_${player.number}" accept="audio/*" onchange="handleFileUpload(this, '${player.number}')">
+                            </div>` :
+                            `<button class="edit-btn" onclick="openClipEditor('${player.number}')">Edit</button>`
+                        }
+                    </div>
+                `;
+                grid.appendChild(row);
+            });
+        }
+        
+        // Handle file upload with comprehensive debugging
+        function handleFileUpload(input, playerNumber) {
+            console.log('🎵 UPLOAD STARTED for player:', playerNumber);
+            const file = input.files[0];
+            if (!file) {
+                console.log('❌ No file selected');
+                return;
+            }
+            
+            // File validation
+            const maxSize = 50 * 1024 * 1024; // 50MB limit
+            console.log('📊 File details:', {
+                name: file.name,
+                type: file.type,
+                size: file.size,
+                sizeInMB: (file.size / (1024 * 1024)).toFixed(2)
+            });
+            
+            if (file.size > maxSize) {
+                alert(`File too large! Maximum size is 50MB. Your file is ${(file.size / (1024 * 1024)).toFixed(2)}MB`);
+                console.log('❌ File too large:', file.size);
+                return;
+            }
+            
+            // Show loading state
+            const player = players.find(p => p.number === playerNumber);
+            if (!player) {
+                console.error('❌ Player not found:', playerNumber);
+                alert('Error: Player not found');
+                return;
+            }
+            
+            console.log('✅ Player found:', player);
+            
+            // Update UI immediately to show "Processing..."
+            const uploadElement = document.querySelector(`#file_${playerNumber}`);
+            if (!uploadElement) {
+                console.error('❌ Upload element not found for player:', playerNumber);
+                return;
+            }
+            
+            uploadElement.parentElement.innerHTML = '<span style="color: #ffc107;">📀 Processing...</span>';
+            console.log('✅ UI updated to show Processing...');
+            
+            // Set up timeout to detect stuck state
+            let processingTimeout = setTimeout(() => {
+                console.error('⏰ TIMEOUT: File processing took too long');
+                showError(player, 'Upload timeout. File may be too large. Try a smaller file.');
+            }, 30000); // 30 second timeout
+            
+            const reader = new FileReader();
+            
+            reader.onloadstart = function() {
+                console.log('📖 FileReader started loading...');
+            };
+            
+            reader.onprogress = function(e) {
+                if (e.lengthComputable) {
+                    const percent = Math.round((e.loaded / e.total) * 100);
+                    console.log(`📊 FileReader progress: ${percent}%`);
+                }
+            };
+            
+            reader.onload = async function(e) {
+                console.log('✅ FileReader complete, data length:', e.target.result.length);
+                clearTimeout(processingTimeout);
+                
+                try {
+                    // Convert to blob for more efficient storage
+                    console.log('🔄 Converting to blob for storage...');
+                    const audioBlob = new Blob([file], { type: file.type });
+                    
+                    // Update player metadata
+                    console.log('🔄 Updating player metadata...');
+                    const songTitle = file.name.replace(/\.(mp3|wav|m4a|aac|flac|ogg)$/i, '');
+                    const startTime = 0;
+                    const clipLength = parseInt(document.getElementById('defaultDuration').value) || 15;
+                    
+                    // Store audio in IndexedDB
+                    console.log('💾 Storing audio in IndexedDB...');
+                    try {
+                        await storeAudioFile(playerNumber, audioBlob, {
+                            fileName: file.name,
+                            fileType: file.type,
+                            fileSize: file.size,
+                            songTitle: songTitle
+                        });
+                        console.log('✅ Audio stored in IndexedDB');
+                        
+                        // Update player object (without large audio data)
+                        player.audioData = 'stored_in_indexeddb'; // Flag to indicate data is in IndexedDB
+                        player.songTitle = songTitle;
+                        player.startTime = startTime;
+                        player.clipLength = clipLength;
+                        player.hasAudio = true;
+                        
+                    } catch (dbError) {
+                        console.log('⚠️ IndexedDB storage failed, trying localStorage fallback...');
+                        
+                        // Fallback to localStorage for smaller files only
+                        if (e.target.result.length < 5 * 1024 * 1024) { // 5MB limit for localStorage
+                            player.audioData = e.target.result;
+                            player.songTitle = songTitle;
+                            player.startTime = startTime;
+                            player.clipLength = clipLength;
+                            player.hasAudio = true;
+                        } else {
+                            showError(player, 'File too large for storage. Try a smaller file (under 5MB) or use a newer browser.');
+                            return;
+                        }
+                    }
+                    
+                    console.log('✅ Player updated:', {
+                        number: player.number,
+                        name: player.name,
+                        songTitle: player.songTitle,
+                        hasAudio: player.hasAudio
+                    });
+                    
+                    // Save metadata to localStorage
+                    console.log('💾 Saving player metadata...');
+                    try {
+                        savePlayersMetadata();
+                        console.log('✅ Player metadata saved');
+                    } catch (saveError) {
+                        console.error('❌ Metadata save failed:', saveError);
+                        showError(player, 'Failed to save settings.');
+                        return;
+                    }
+                    
+                    // Update UI
+                    console.log('🔄 Updating UI...');
+                    try {
+                        renderSoundboard();
+                        console.log('✅ Soundboard updated');
+                    } catch (renderError) {
+                        console.error('❌ Soundboard render failed:', renderError);
+                    }
+                    
+                    // Show success state
+                    console.log('🎉 Showing success state...');
+                    try {
+                        showProcessingComplete(player);
+                        console.log('✅ Success state shown');
+                    } catch (successError) {
+                        console.error('❌ Success state failed:', successError);
+                        showManualButton(player);
+                    }
+                    
+                    // Try to auto-open clip editor
+                    console.log('🎵 Attempting to auto-open clip editor...');
+                    setTimeout(async () => {
+                        try {
+                            await openClipEditor(playerNumber);
+                            console.log('✅ Clip editor opened');
+                        } catch (error) {
+                            console.error('❌ Auto clip editor failed:', error);
+                        }
+                    }, 500);
+                    
+                } catch (overallError) {
+                    console.error('❌ CRITICAL ERROR in file processing:', overallError);
+                    clearTimeout(processingTimeout);
+                    showError(player, 'Unexpected error processing file: ' + overallError.message);
+                }
+            };
+            
+            reader.onerror = function(error) {
+                console.error('❌ FileReader error:', error);
+                clearTimeout(processingTimeout);
+                showError(player, 'Error reading file. Please try again.');
+            };
+            
+            reader.onabort = function() {
+                console.error('❌ FileReader aborted');
+                clearTimeout(processingTimeout);
+                showError(player, 'File reading was aborted. Please try again.');
+            };
+            
+            console.log('📖 Starting FileReader...');
+            reader.readAsDataURL(file);
+            
+            // Clear the input so the same file can be selected again if needed
+            input.value = '';
+        }
+        
+        // Show error state with retry option
+        function showError(player, message) {
+            console.log('🚨 Showing error for player:', player.number, message);
+            const playerRow = document.querySelector(`#file_${player.number}`);
+            if (playerRow) {
+                const actionCell = playerRow.closest('.player-row').querySelector('div:last-child');
+                actionCell.innerHTML = `
+                    <div style="display: flex; flex-direction: column; gap: 5px; align-items: center;">
+                        <span style="color: #ff4757; font-size: 10px;">❌ ${message}</span>
+                        <button class="upload-btn" onclick="document.getElementById('file_${player.number}').click()">
+                            Try Again
+                        </button>
+                        <input type="file" id="file_${player.number}" accept="audio/*" onchange="handleFileUpload(this, '${player.number}')" style="display: none;">
+                    </div>
+                `;
+            }
+        }
+        
+        // Fallback manual button
+        function showManualButton(player) {
+            console.log('🔧 Showing manual button for player:', player.number);
+            const playerRow = document.querySelector(`#file_${player.number}`);
+            if (playerRow) {
+                const actionCell = playerRow.closest('.player-row').querySelector('div:last-child');
+                actionCell.innerHTML = `
+                    <button class="edit-btn" onclick="openClipEditor('${player.number}')" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);">
+                        Select Clip
+                    </button>
+                `;
+            }
+        }
+        
+        // Show processing complete state with manual proceed option
+        function showProcessingComplete(player) {
+            const playerRow = document.querySelector(`#file_${player.number}`).closest('.player-row');
+            const actionCell = playerRow.querySelector('div:last-child');
+            
+            actionCell.innerHTML = `
+                <div style="display: flex; flex-direction: column; gap: 5px; align-items: center;">
+                    <span style="color: #38ef7d; font-size: 12px;">✅ Upload Complete</span>
+                    <button class="edit-btn" onclick="openClipEditor('${player.number}')" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);">
+                        Select Clip
+                    </button>
+                </div>
+            `;
+            
+            // Auto-hide the success message and revert to normal edit button after 10 seconds
+            setTimeout(() => {
+                renderRoster();
+            }, 10000);
+        }
+        
+        // Play goal song (updated to work with IndexedDB)
+        async function playGoalSong(player) {
+            if (!player.audioData && !player.hasAudio) return;
+            
+            stopAllAudio();
+            
+            try {
+                let audioSource = null;
+                
+                // Check if audio is stored in IndexedDB
+                if (player.audioData === 'stored_in_indexeddb') {
+                    console.log('🎵 Loading audio from IndexedDB for player:', player.number);
+                    const audioFileData = await getAudioFile(player.number);
+                    if (audioFileData && audioFileData.audioBlob) {
+                        audioSource = URL.createObjectURL(audioFileData.audioBlob);
+                    } else {
+                        console.error('❌ No audio found in IndexedDB for player:', player.number);
+                        return;
+                    }
+                } else if (player.audioData) {
+                    // Use direct data URL from localStorage
+                    audioSource = player.audioData;
+                } else {
+                    console.log('❌ No audio data for player:', player.number);
+                    return;
+                }
+                
+                const audio = new Audio(audioSource);
+                audio.currentTime = player.startTime;
+                audio.volume = 1.0;
+                
+                currentAudio = audio;
+                
+                const promise = audio.play();
+                if (promise) {
+                    promise.then(() => {
+                        // Stop after clip length
+                        setTimeout(() => {
+                            if (currentAudio === audio) {
+                                const fadeDuration = parseInt(document.getElementById('fadeDuration').value) || 2;
+                                fadeOut(audio, fadeDuration);
+                            }
+                        }, player.clipLength * 1000);
+                    }).catch(e => {
+                        console.log('❌ Play failed:', e);
+                    });
+                }
+                
+                // Clean up object URL if created
+                if (audioSource.startsWith('blob:')) {
+                    audio.addEventListener('ended', () => URL.revokeObjectURL(audioSource));
+                    audio.addEventListener('error', () => URL.revokeObjectURL(audioSource));
+                }
+                
+            } catch (error) {
+                console.error('❌ Error playing goal song:', error);
+            }
+        }
+        
+        // Stop all audio
+        function stopAllAudio() {
+            if (currentAudio) {
+                currentAudio.pause();
+                currentAudio = null;
+            }
+            if (clipEditorAudio) {
+                clipEditorAudio.pause();
+                clipEditorAudio = null;
+            }
+            stopPlayheadAnimation();
+        }
+        
+        // Fade out audio
+        function fadeOut(audio, duration) {
+            const startVolume = audio.volume;
+            const fadeStep = startVolume / (duration * 20); // 20 steps per second
+            
+            const fadeInterval = setInterval(() => {
+                audio.volume = Math.max(0, audio.volume - fadeStep);
+                if (audio.volume <= 0) {
+                    clearInterval(fadeInterval);
+                    audio.pause();
+                    if (currentAudio === audio) currentAudio = null;
+                }
+            }, 50);
+        }
+        
+        // Open clip editor (updated to work with IndexedDB)
+        async function openClipEditor(playerNumber) {
+            const player = players.find(p => p.number === playerNumber);
+            if (!player || (!player.audioData && !player.hasAudio)) {
+                alert('No audio data found for this player');
+                return;
+            }
+            
+            currentEditingPlayer = player;
+            
+            document.getElementById('editingPlayerInfo').textContent =
+                `🎵 Setting clip for #${player.number} ${player.name} - ${player.songTitle}`;
+            
+            // Create audio element for the editor
+            stopAllAudio();
+            
+            try {
+                let audioSource = null;
+                
+                // Check if audio is stored in IndexedDB
+                if (player.audioData === 'stored_in_indexeddb') {
+                    console.log('🎵 Loading audio from IndexedDB for clip editor, player:', player.number);
+                    const audioFileData = await getAudioFile(player.number);
+                    if (audioFileData && audioFileData.audioBlob) {
+                        audioSource = URL.createObjectURL(audioFileData.audioBlob);
+                        console.log('✅ Audio blob loaded from IndexedDB');
+                    } else {
+                        console.error('❌ No audio found in IndexedDB for player:', player.number);
+                        alert('Audio file not found. Please re-upload the audio.');
+                        return;
+                    }
+                } else if (player.audioData) {
+                    // Use direct data URL from localStorage
+                    audioSource = player.audioData;
+                } else {
+                    alert('No audio data available.');
+                    return;
+                }
+                
+                clipEditorAudio = new Audio(audioSource);
+                
+                // Clean up object URL when done
+                if (audioSource.startsWith('blob:')) {
+                    clipEditorAudio.addEventListener('ended', () => URL.revokeObjectURL(audioSource));
+                    clipEditorAudio.addEventListener('error', () => URL.revokeObjectURL(audioSource));
+                }
+                
+            } catch (error) {
+                console.error('❌ Error loading audio for clip editor:', error);
+                alert('Error loading audio file. Please try again.');
+                return;
+            }
+            
+            clipEditorAudio.addEventListener('loadedmetadata', function() {
+                const duration = this.duration;
+                console.log('Audio loaded, duration:', duration);
+                
+                // Setup sliders with better ranges
+                const startSlider = document.getElementById('startSlider');
+                const lengthSlider = document.getElementById('lengthSlider');
+                
+                startSlider.max = Math.max(1, Math.floor(duration - 1));
+                startSlider.value = player.startTime;
+                startSlider.step = 0.1; // Allow more precise positioning
+                
+                lengthSlider.max = 30;
+                lengthSlider.value = player.clipLength;
+                lengthSlider.step = 1;
+                
+                updateTimeDisplays();
+                drawWaveform();
+                
+                // Hide the audio unlock hint since we're in the editor
+                document.getElementById('audioHint').style.display = 'none';
+                
+                // Unlock audio immediately for smooth playback
+                if (!isAudioUnlocked) {
+                    this.muted = true;
+                    this.play().then(() => {
+                        this.pause();
+                        this.currentTime = 0;
+                        this.muted = false;
+                        isAudioUnlocked = true;
+                    }).catch(e => console.log('Audio unlock failed:', e));
+                }
+            });
+            
+            clipEditorAudio.addEventListener('loadstart', function() {
+                document.getElementById('audioHint').textContent = '📀 Loading audio...';
+                document.getElementById('audioHint').style.display = 'block';
+            });
+            
+            clipEditorAudio.addEventListener('canplaythrough', function() {
+                document.getElementById('audioHint').textContent = '🎵 Drag sliders to set your clip. Audio will play automatically.';
+            });
+            
+            // Add event listeners with better handling
+            const startSlider = document.getElementById('startSlider');
+            const lengthSlider = document.getElementById('lengthSlider');
+            
+            // Remove old listeners
+            startSlider.oninput = null;
+            lengthSlider.oninput = null;
+            
+            // Add new listeners for real-time feedback
+            startSlider.addEventListener('input', handleStartSliderChange);
+            startSlider.addEventListener('change', handleStartSliderChange); // For mobile
+            lengthSlider.addEventListener('input', updateTimeDisplays);
+            lengthSlider.addEventListener('change', updateTimeDisplays);
+            
+            clipEditorAudio.load();
+            document.getElementById('clipEditorModal').style.display = 'block';
+        }
+        
+        // Handle start slider change with immediate audio feedback
+        function handleStartSliderChange() {
+            updateTimeDisplays();
+            updatePlayheadPosition();
+            
+            if (clipEditorAudio && clipEditorAudio.readyState >= 2) {
+                // Stop any current playback
+                clipEditorAudio.pause();
+                stopPlayheadAnimation();
+                
+                // Set new position
+                const startTime = parseFloat(document.getElementById('startSlider').value);
+                clipEditorAudio.currentTime = Math.max(0, startTime);
+                
+                // Play immediately at new position
+                const playPromise = clipEditorAudio.play();
+                if (playPromise) {
+                    playPromise.then(() => {
+                        startPlayheadAnimation();
+                        
+                        // Auto-stop after 2 seconds of preview
+                        setTimeout(() => {
+                            if (clipEditorAudio && !clipEditorAudio.paused) {
+                                clipEditorAudio.pause();
+                                stopPlayheadAnimation();
+                            }
+                        }, 2000);
+                    }).catch(e => {
+                        console.log('Auto-preview failed:', e);
+                        // Retry once more after a brief delay
+                        setTimeout(() => {
+                            clipEditorAudio.play().catch(e => console.log('Retry failed:', e));
+                        }, 100);
+                    });
+                }
+            }
+        }
+        
+        // Update playhead position based on current slider value
+        function updatePlayheadPosition() {
+            if (!clipEditorAudio || !currentEditingPlayer) return;
+            
+            const startTime = parseFloat(document.getElementById('startSlider').value);
+            const clipLength = parseFloat(document.getElementById('lengthSlider').value);
+            const duration = clipEditorAudio.duration || 1;
+            
+            // Position playhead at start of clip
+            const progress = Math.max(0, Math.min(1, startTime / duration));
+            const playhead = document.getElementById('playhead');
+            const container = playhead.parentElement;
+            const containerWidth = container.offsetWidth - 40;
+            
+            playhead.style.left = `${20 + (progress * containerWidth)}px`;
+        }
+        
+        // Preview full clip
+        function previewFullClip() {
+            if (!clipEditorAudio) return;
+            
+            const startTime = parseFloat(document.getElementById('startSlider').value);
+            const clipLength = parseFloat(document.getElementById('lengthSlider').value);
+            
+            clipEditorAudio.currentTime = startTime;
+            clipEditorAudio.play().then(() => {
+                startPlayheadAnimation();
+                
+                setTimeout(() => {
+                    if (clipEditorAudio && !clipEditorAudio.paused) {
+                        clipEditorAudio.pause();
+                        stopPlayheadAnimation();
+                    }
+                }, clipLength * 1000);
+            }).catch(e => console.log('Preview failed:', e));
+        }
+        
+        // Update time displays
+        function updateTimeDisplays() {
+            const startTime = parseFloat(document.getElementById('startSlider').value);
+            const clipLength = parseFloat(document.getElementById('lengthSlider').value);
+            
+            const startMin = Math.floor(startTime / 60);
+            const startSec = Math.floor(startTime % 60);
+            
+            document.getElementById('startTime').textContent = `${startMin}:${startSec.toString().padStart(2, '0')}`;
+            document.getElementById('lengthTime').textContent = `${clipLength}s`;
+            
+            // Update total duration display
+            if (clipEditorAudio && clipEditorAudio.duration) {
+                const totalMin = Math.floor(clipEditorAudio.duration / 60);
+                const totalSec = Math.floor(clipEditorAudio.duration % 60);
+                document.getElementById('totalTime').textContent = `/ ${totalMin}:${totalSec.toString().padStart(2, '0')}`;
+            }
+        }
+        
+        // Jump to specific position in song (percentage)
+        function jumpToPosition(percentage) {
+            if (!clipEditorAudio || !clipEditorAudio.duration) return;
+            
+            const position = (percentage / 100) * clipEditorAudio.duration;
+            const startSlider = document.getElementById('startSlider');
+            
+            // Update slider
+            startSlider.value = Math.max(0, Math.min(position, parseFloat(startSlider.max)));
+            
+            // Trigger the change event to play preview
+            handleStartSliderChange();
+        }
+        
+        // Draw waveform visualization
+        function drawWaveform() {
+            const canvas = document.getElementById('waveform');
+            const ctx = canvas.getContext('2d');
+            
+            // Simple waveform visualization
+            ctx.fillStyle = '#333';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            ctx.fillStyle = '#667eea';
+            for (let i = 0; i < canvas.width; i += 4) {
+                const height = Math.random() * 40 + 20;
+                ctx.fillRect(i, (canvas.height - height) / 2, 2, height);
+            }
+        }
+        
+        // Start playhead animation
+        function startPlayheadAnimation() {
+            if (!clipEditorAudio) return;
+            
+            isPlaying = true;
+            playbackStartTime = performance.now() - (clipEditorAudio.currentTime * 1000);
+            
+            function updatePlayhead() {
+                if (!isPlaying || !clipEditorAudio) return;
+                
+                const duration = clipEditorAudio.duration;
+                const startTime = parseFloat(document.getElementById('startSlider').value);
+                const clipLength = parseFloat(document.getElementById('lengthSlider').value);
+                
+                const currentTime = clipEditorAudio.currentTime;
+                const progress = Math.max(0, Math.min(1, (currentTime - startTime) / clipLength));
+                
+                const playhead = document.getElementById('playhead');
+                const container = playhead.parentElement;
+                const containerWidth = container.offsetWidth - 40; // Account for padding
+                
+                playhead.style.left = `${20 + (progress * containerWidth)}px`;
+                
+                if (currentTime < startTime + clipLength && !clipEditorAudio.paused) {
+                    animationFrame = requestAnimationFrame(updatePlayhead);
+                } else {
+                    stopPlayheadAnimation();
+                }
+            }
+            
+            updatePlayhead();
+        }
+        
+        // Stop playhead animation
+        function stopPlayheadAnimation() {
+            isPlaying = false;
+            if (animationFrame) {
+                cancelAnimationFrame(animationFrame);
+                animationFrame = null;
+            }
+        }
+        
+        // Save clip settings
+        function saveClipSettings() {
+            if (!currentEditingPlayer) return;
+            
+            currentEditingPlayer.startTime = parseFloat(document.getElementById('startSlider').value);
+            currentEditingPlayer.clipLength = parseFloat(document.getElementById('lengthSlider').value);
+            
+            savePlayers();
+            renderRoster();
+            closeClipEditor();
+            
+            alert('Clip settings saved successfully!');
+        }
+        
+        // Close clip editor
+        function closeClipEditor() {
+            stopAllAudio();
+            document.getElementById('clipEditorModal').style.display = 'none';
+            currentEditingPlayer = null;
+            clipEditorAudio = null;
+        }
+        
+        // Data management functions
+        function exportData() {
+            const dataToExport = players.filter(p => p.audioData).map(p => ({
+                number: p.number,
+                name: p.name,
+                songTitle: p.songTitle,
+                startTime: p.startTime,
+                clipLength: p.clipLength
+            }));
+            
+            const blob = new Blob([JSON.stringify(dataToExport, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'ravens-soundboard-settings.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+        
+        function importData(input) {
+            const file = input.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const importedData = JSON.parse(e.target.result);
+                    
+                    importedData.forEach(imported => {
+                        const player = players.find(p => p.number === imported.number);
+                        if (player) {
+                            player.songTitle = imported.songTitle;
+                            player.startTime = imported.startTime;
+                            player.clipLength = imported.clipLength;
+                        }
+                    });
+                    
+                    savePlayers();
+                    renderRoster();
+                    alert('Settings imported successfully! You\'ll still need to upload the audio files.');
+                } catch (error) {
+                    alert('Error importing data. Please check your file format.');
+                }
+            };
+            reader.readAsText(file);
+        }
+        
+        function clearAllData() {
+            if (confirm('Are you sure you want to clear all data? This cannot be undone.')) {
+                localStorage.removeItem('ravensSoundboardPlayers');
+                loadPlayers();
+                renderSoundboard();
+                renderRoster();
+                alert('All data cleared.');
+            }
+        }
+        
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                stopAllAudio();
+            }
+            if (e.code === 'Escape') {
+                closeClipEditor();
+            }
+        });
+        
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('clipEditorModal');
+            if (event.target === modal) {
+                closeClipEditor();
+            }
+        }
+    </script>
+</body>
+</html>
