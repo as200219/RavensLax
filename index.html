@@ -987,6 +987,19 @@
 
             const hornAudio = new Audio(getAudioUrl(GOAL_HORN_FILE));
             currentAudio = hornAudio;
+            hornAudio.addEventListener('loadedmetadata', () => {
+                const fadeDuration = 2; // seconds
+                const fadeStartMs = Math.max(0, (hornAudio.duration - fadeDuration) * 1000);
+                setTimeout(() => {
+                    const steps = 20;
+                    let step = 0;
+                    const fadeInterval = setInterval(() => {
+                        step++;
+                        hornAudio.volume = Math.max(0, 1 - step / steps);
+                        if (step >= steps) clearInterval(fadeInterval);
+                    }, (fadeDuration * 1000) / steps);
+                }, fadeStartMs);
+            });
             hornAudio.addEventListener('ended', startClip);
             hornAudio.play().catch(() => {
                 // Horn failed to load/play — skip straight to clip
@@ -1022,7 +1035,15 @@
             const grid = document.getElementById('uploadGrid');
             grid.innerHTML = '';
 
-            players.forEach(player => {
+            const sorted = players
+                .filter(p => p.name || p.jerseyNumber !== '' || p.audioFile)
+                .sort((a, b) => {
+                    const na = a.jerseyNumber !== '' ? parseInt(a.jerseyNumber) : 999;
+                    const nb = b.jerseyNumber !== '' ? parseInt(b.jerseyNumber) : 999;
+                    return na - nb;
+                });
+
+            sorted.forEach(player => {
                 const row = document.createElement('div');
                 row.className = 'player-row';
                 row.id = 'file_' + player.number;
@@ -1034,7 +1055,7 @@
                 ).join('');
 
                 row.innerHTML = [
-                    '<h3>Player #' + player.number + '</h3>',
+                    '<h3>Player Jersey Number ' + esc(String(player.jerseyNumber)) + '</h3>',
                     '<div class="upload-controls">',
 
                     // Name & jersey
