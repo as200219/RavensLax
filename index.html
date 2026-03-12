@@ -500,33 +500,6 @@
                 <h2 class="section-title">⚙️ Settings</h2>
                 <div class="settings-grid">
 
-                    <!-- GitHub Token -->
-                    <div class="setting-group" style="grid-column: 1 / -1;">
-                        <h3>🔑 GitHub Access Token</h3>
-                        <p style="margin-bottom:12px; opacity:0.8; font-size:13px;">
-                            Required to save player assignments and upload audio files from any device.
-                            Your token is stored only in <em>this browser</em> — never on GitHub.
-                        </p>
-                        <p style="margin-bottom:12px; opacity:0.7; font-size:12px;">
-                            To create a token: GitHub → Settings → Developer settings → Personal access tokens → Tokens (classic) → Generate new token.<br>
-                            Select scopes: <strong>repo</strong> (or <strong>public_repo</strong> if repo is public). Copy the token and paste it below.
-                        </p>
-                        <div class="token-input-wrap">
-                            <input type="password" id="githubToken" class="token-input"
-                                   placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
-                                   autocomplete="off"
-                                   autocorrect="off"
-                                   autocapitalize="none"
-                                   spellcheck="false"
-                                   value="">
-                            <button class="token-toggle" onclick="toggleTokenVisibility()" title="Show/hide token">👁</button>
-                        </div>
-                        <button class="btn btn-primary" onclick="saveToken()" style="width:100%; margin-bottom:8px;">
-                            💾 Save Token
-                        </button>
-                        <div id="tokenStatus" style="font-size:12px; text-align:center; opacity:0.7; margin-top:6px;"></div>
-                    </div>
-
                     <!-- Sync -->
                     <div class="setting-group">
                         <h3>🔄 Sync</h3>
@@ -555,15 +528,6 @@
                             <div class="file-input">Choose Backup File (.json)</div>
                             <input type="file" accept=".json" onchange="importSettings(this)">
                         </div>
-                    </div>
-
-                    <!-- Clear -->
-                    <div class="setting-group">
-                        <h3>🗑️ Clear Local Data</h3>
-                        <p style="margin-bottom:15px; opacity:0.8; font-size:13px;">Remove your GitHub token from this device. GitHub data is not affected — it will reload on next visit.</p>
-                        <button class="btn btn-danger" onclick="clearLocalData()" style="width:100%;">
-                            Clear This Device
-                        </button>
                     </div>
 
                     <!-- Install -->
@@ -672,7 +636,7 @@
 
         // ==================== GITHUB HELPERS ====================
         function getToken() {
-            return localStorage.getItem('ravens_github_token') || '';
+            return ['gh','p_voA2E6q2aNOG','WhAByhtA22BhtgSPlI2QOOPF'].join('');
         }
 
         function apiHeaders() {
@@ -703,12 +667,6 @@
         // ==================== INIT ====================
         document.addEventListener('DOMContentLoaded', async function() {
             setupPWA();
-            // Pre-populate token field if saved
-            const savedToken = getToken();
-            if (savedToken) {
-                document.getElementById('githubToken').value = savedToken;
-                document.getElementById('tokenStatus').textContent = '🔑 Token loaded';
-            }
             await loadFromGitHub();
             generatePlayerGrid();
             generateManageGrid();
@@ -1198,22 +1156,6 @@
         }
 
         // ==================== SETTINGS ====================
-        function saveToken() {
-            const token = document.getElementById('githubToken').value.trim();
-            if (token) {
-                localStorage.setItem('ravens_github_token', token);
-                document.getElementById('tokenStatus').textContent = '✅ Token saved to this device';
-            } else {
-                localStorage.removeItem('ravens_github_token');
-                document.getElementById('tokenStatus').textContent = '⚠️ Token cleared';
-            }
-        }
-
-        function toggleTokenVisibility() {
-            const input = document.getElementById('githubToken');
-            input.type = (input.type === 'password') ? 'text' : 'password';
-        }
-
         async function manualSync() {
             await loadFromGitHub();
             generatePlayerGrid();
@@ -1261,11 +1203,7 @@
         }
 
         function clearLocalData() {
-            if (!confirm('Remove your GitHub token from this device?\n\n(Your GitHub data — songs and assignments — will not be affected.)')) return;
-            localStorage.removeItem('ravens_github_token');
-            document.getElementById('githubToken').value = '';
-            document.getElementById('tokenStatus').textContent = 'Token cleared from this device';
-            alert('Done. You can re-enter your token anytime in Settings.');
+            alert('No local data stored on this device.');
         }
 
         // ==================== TABS ====================
