@@ -631,6 +631,7 @@
         let currentClipPlayer = null;
         let deferredPrompt;
         let currentAudio = null;
+        let currentHornAudio = null;
         let currentPlayingPlayer = null;
         let currentStopTimeout = null;
         let currentPulseTimeout = null;
@@ -930,10 +931,8 @@
 
         // ==================== PLAYBACK ====================
         function stopCurrentAudio() {
-            if (currentAudio) {
-                currentAudio.pause();
-                currentAudio = null;
-            }
+            if (currentHornAudio) { currentHornAudio.pause(); currentHornAudio = null; }
+            if (currentAudio) { currentAudio.pause(); currentAudio = null; }
             clearTimeout(currentStopTimeout);
             clearTimeout(currentPulseTimeout);
             currentStopTimeout = null;
@@ -986,10 +985,15 @@
             };
 
             const hornAudio = new Audio(getAudioUrl(GOAL_HORN_FILE));
-            currentAudio = hornAudio;
+            currentHornAudio = hornAudio;
             hornAudio.addEventListener('loadedmetadata', () => {
-                const fadeDuration = 2; // seconds
-                const fadeStartMs = Math.max(0, (hornAudio.duration - fadeDuration) * 1000);
+                const overlapSec = 3;  // clip starts this many seconds before horn ends
+                const fadeSec    = 2;  // horn fades out over last 2 seconds
+                const clipStartMs = Math.max(0, (hornAudio.duration - overlapSec) * 1000);
+                const fadeStartMs = Math.max(0, (hornAudio.duration - fadeSec) * 1000);
+                // Start clip 3s before horn ends
+                setTimeout(startClip, clipStartMs);
+                // Start fade 2s before horn ends
                 setTimeout(() => {
                     const steps = 20;
                     let step = 0;
@@ -997,13 +1001,12 @@
                         step++;
                         hornAudio.volume = Math.max(0, 1 - step / steps);
                         if (step >= steps) clearInterval(fadeInterval);
-                    }, (fadeDuration * 1000) / steps);
+                    }, (fadeSec * 1000) / steps);
                 }, fadeStartMs);
             });
-            hornAudio.addEventListener('ended', startClip);
             hornAudio.play().catch(() => {
                 // Horn failed to load/play — skip straight to clip
-                currentAudio = null;
+                currentHornAudio = null;
                 startClip();
             });
         }
