@@ -1,6 +1,6 @@
 {
   "version": "4.0",
-  "lastUpdated": "2026-03-13T01:17:36.663Z",
+  "lastUpdated": "2026-03-13T01:18:19.373Z",
   "players": [
     {
       "number": 1,
@@ -119,8 +119,8 @@
       "name": "Hari Le Cheminant",
       "jerseyNumber": "8",
       "audioFile": "Green Day - Let Yourself Go (SPOTISAVER).mp3",
-      "startTime": 0,
-      "endTime": 30
+      "startTime": 28,
+      "endTime": 38
     },
     {
       "number": 16,
