@@ -1,6 +1,6 @@
 {
   "version": "4.0",
-  "lastUpdated": "2026-03-13T01:25:23.430Z",
+  "lastUpdated": "2026-03-13T17:06:12.493Z",
   "players": [
     {
       "number": 1,
@@ -78,7 +78,7 @@
       "number": 10,
       "name": "Evan Hatefi",
       "jerseyNumber": "42",
-      "audioFile": "Mötley Crüe - Kickstart My Heart (SPOTISAVER).mp3",
+      "audioFile": "MoÌtley CruÌe - Kickstart My Heart (SPOTISAVER).mp3",
       "startTime": 0,
       "endTime": 20
     },
@@ -158,7 +158,7 @@
       "number": 20,
       "name": "Kip Hinson",
       "jerseyNumber": "0",
-      "audioFile": "Lynyrd Skynyrd - Free Bird (SPOTISAVER).mp3",
+      "audioFile": "Kelly Clarkson - Since U Been Gone (SPOTISAVER).mp3",
       "startTime": 287,
       "endTime": 300
     },
