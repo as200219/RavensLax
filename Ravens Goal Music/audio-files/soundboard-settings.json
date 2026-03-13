@@ -1,6 +1,6 @@
 {
   "version": "4.0",
-  "lastUpdated": "2026-03-13T19:33:27.512Z",
+  "lastUpdated": "2026-03-13T19:34:25.114Z",
   "players": [
     {
       "number": 1,
@@ -87,8 +87,8 @@
       "name": "Gavin Melson",
       "jerseyNumber": "27",
       "audioFile": "David Guetta, Sia - Titanium (feat. Sia) (SPOTISAVER).mp3",
-      "startTime": 0,
-      "endTime": 30
+      "startTime": 60,
+      "endTime": 71
     },
     {
       "number": 12,
