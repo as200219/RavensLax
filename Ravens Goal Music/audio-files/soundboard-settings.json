@@ -1,6 +1,6 @@
 {
   "version": "4.0",
-  "lastUpdated": "2026-03-13T17:06:36.133Z",
+  "lastUpdated": "2026-03-13T17:07:39.699Z",
   "players": [
     {
       "number": 1,
@@ -54,7 +54,7 @@
       "number": 7,
       "name": "Cole Dirks",
       "jerseyNumber": "17",
-      "audioFile": "",
+      "audioFile": "Metallica - If Darkness Had a Son (SPOTISAVER).mp3",
       "startTime": 0,
       "endTime": 30
     },
