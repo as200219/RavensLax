@@ -1,6 +1,6 @@
 {
   "version": "4.0",
-  "lastUpdated": "2026-03-13T00:40:00.274Z",
+  "lastUpdated": "2026-03-13T00:40:19.736Z",
   "players": [
     {
       "number": 1,
@@ -63,8 +63,8 @@
       "name": "Cole Sabourin",
       "jerseyNumber": "18",
       "audioFile": "50 Cent - Many Men (Wish Death) (SPOTISAVER).mp3",
-      "startTime": 0,
-      "endTime": 30
+      "startTime": 13,
+      "endTime": 20
     },
     {
       "number": 9,
