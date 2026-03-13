@@ -1,6 +1,6 @@
 {
   "version": "4.0",
-  "lastUpdated": "2026-03-13T00:28:12.404Z",
+  "lastUpdated": "2026-03-13T00:28:56.462Z",
   "players": [
     {
       "number": 1,
@@ -95,8 +95,8 @@
       "name": "Gray Goodwin",
       "jerseyNumber": "6",
       "audioFile": "Boosie Badazz, Foxx, Mouse On Tha Track - Loose as a Goose (feat. Foxx & Mouse On Tha Track) (SPOTISAVER).mp3",
-      "startTime": 0,
-      "endTime": 30
+      "startTime": 8,
+      "endTime": 15
     },
     {
       "number": 13,
