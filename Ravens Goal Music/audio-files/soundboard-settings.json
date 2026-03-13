@@ -1,6 +1,6 @@
 {
   "version": "4.0",
-  "lastUpdated": "2026-03-13T00:33:24.955Z",
+  "lastUpdated": "2026-03-13T00:33:39.186Z",
   "players": [
     {
       "number": 1,
@@ -23,8 +23,8 @@
       "name": "Carter Geoffrey",
       "jerseyNumber": "29",
       "audioFile": "Lynyrd Skynyrd - Free Bird (SPOTISAVER).mp3",
-      "startTime": 0,
-      "endTime": 30
+      "startTime": 287,
+      "endTime": 300
     },
     {
       "number": 4,
