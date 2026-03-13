@@ -1,6 +1,6 @@
 {
   "version": "4.0",
-  "lastUpdated": "2026-03-13T00:29:41.161Z",
+  "lastUpdated": "2026-03-13T00:32:29.874Z",
   "players": [
     {
       "number": 1,
@@ -216,7 +216,7 @@
       "jerseyNumber": "28",
       "audioFile": "Guns N' Roses - Welcome To The Jungle (SPOTISAVER).mp3",
       "startTime": 0,
-      "endTime": 30
+      "endTime": 20
     },
     {
       "number": 28,
