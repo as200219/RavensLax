@@ -1,6 +1,6 @@
 {
   "version": "4.0",
-  "lastUpdated": "2026-03-13T17:06:12.493Z",
+  "lastUpdated": "2026-03-13T17:06:36.133Z",
   "players": [
     {
       "number": 1,
@@ -159,8 +159,8 @@
       "name": "Kip Hinson",
       "jerseyNumber": "0",
       "audioFile": "Kelly Clarkson - Since U Been Gone (SPOTISAVER).mp3",
-      "startTime": 287,
-      "endTime": 300
+      "startTime": 138,
+      "endTime": 148
     },
     {
       "number": 21,
