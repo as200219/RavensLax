@@ -1,6 +1,6 @@
 {
   "version": "4.0",
-  "lastUpdated": "2026-03-13T19:26:44.402Z",
+  "lastUpdated": "2026-03-13T19:27:22.395Z",
   "players": [
     {
       "number": 1,
@@ -135,8 +135,8 @@
       "name": "Jack Oates",
       "jerseyNumber": "7",
       "audioFile": "Petey Pablo - Raise Up (SPOTISAVER).mp3",
-      "startTime": 0,
-      "endTime": 30
+      "startTime": 32,
+      "endTime": 44
     },
     {
       "number": 18,
