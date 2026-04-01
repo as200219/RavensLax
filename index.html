@@ -459,7 +459,7 @@
 
     <div class="header">
         <h1 class="logo">🥍 Ravens Goal Soundboard</h1>
-        <p style="text-align:center; opacity:0.5; font-size:12px; margin:5px 0;">v4.5.1</p>
+        <p style="text-align:center; opacity:0.5; font-size:12px; margin:5px 0;">v4.5.2</p>
         <p style="text-align:center; opacity:0.8; margin-bottom:20px;">Ravenscroft Lacrosse Goal Music</p>
     </div>
 
@@ -1317,28 +1317,52 @@
 
         // ==================== SERVICE WORKER ====================
         let serviceWorkerReady = false;
+        let swRegistration = null;
         
         async function initServiceWorker() {
+            const statusEl = document.getElementById('cacheStatus');
+            
             if (!('serviceWorker' in navigator)) {
-                const statusEl = document.getElementById('cacheStatus');
                 if (statusEl) statusEl.textContent = '❌ Browser does not support offline mode';
                 return;
             }
 
             try {
+                // Check if we just reloaded after first install
+                const justReloaded = sessionStorage.getItem('sw-reload');
+                if (justReloaded) {
+                    sessionStorage.removeItem('sw-reload');
+                    console.log('✅ Reloaded after service worker install');
+                }
+
                 // Register service worker
-                const registration = await navigator.serviceWorker.register('./service-worker.js');
-                console.log('✅ Service Worker registered:', registration.scope);
+                swRegistration = await navigator.serviceWorker.register('./service-worker.js');
+                console.log('✅ Service Worker registered:', swRegistration.scope);
                 
-                // Wait for it to be ready and active
+                // Check if this is first install (no active worker yet)
+                if (!navigator.serviceWorker.controller && swRegistration.installing) {
+                    console.log('⏳ First install - will reload when ready');
+                    if (statusEl) statusEl.textContent = '⏳ Installing offline mode...';
+                    
+                    // Wait for installation to complete, then reload
+                    swRegistration.installing.addEventListener('statechange', function() {
+                        if (this.state === 'activated') {
+                            console.log('✅ Service Worker activated - reloading page');
+                            sessionStorage.setItem('sw-reload', 'true');
+                            window.location.reload();
+                        }
+                    });
+                    return;
+                }
+                
+                // Wait for service worker to be ready
                 await navigator.serviceWorker.ready;
                 console.log('✅ Service Worker ready');
                 
-                // Wait for controller to be set (may take a moment on first load)
-                let attempts = 0;
-                while (!navigator.serviceWorker.controller && attempts < 20) {
+                // Wait for controller (with timeout)
+                const startTime = Date.now();
+                while (!navigator.serviceWorker.controller && (Date.now() - startTime) < 3000) {
                     await new Promise(resolve => setTimeout(resolve, 100));
-                    attempts++;
                 }
                 
                 if (navigator.serviceWorker.controller) {
@@ -1346,14 +1370,14 @@
                     console.log('✅ Service Worker controller active');
                     updateCacheStatus();
                 } else {
-                    console.warn('⚠️ Service Worker registered but no controller yet');
-                    const statusEl = document.getElementById('cacheStatus');
-                    if (statusEl) statusEl.textContent = '⚠️ Reload page to activate offline mode';
+                    console.warn('⚠️ No controller - showing manual reload option');
+                    if (statusEl) {
+                        statusEl.innerHTML = '⚠️ <a href="javascript:location.reload()" style="color:#f5e6a8;text-decoration:underline;">Tap here to activate offline mode</a>';
+                    }
                 }
             } catch (error) {
                 console.error('❌ Service Worker error:', error);
-                const statusEl = document.getElementById('cacheStatus');
-                if (statusEl) statusEl.textContent = '❌ Offline mode unavailable';
+                if (statusEl) statusEl.textContent = '❌ Offline mode unavailable: ' + error.message;
             }
         }
         
@@ -1364,7 +1388,7 @@
             initServiceWorker();
         }
         
-        // Listen for controller change (when service worker activates)
+        // Listen for controller change
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.addEventListener('controllerchange', () => {
                 console.log('✅ Service Worker controller changed');
@@ -1383,43 +1407,46 @@
                 return;
             }
 
-            const messageChannel = new MessageChannel();
-            messageChannel.port1.onmessage = (event) => {
-                if (event.data.success) {
-                    const count = event.data.cachedCount;
+            try {
+                const messageChannel = new MessageChannel();
+                
+                // Set timeout for response
+                const timeout = new Promise((_, reject) => 
+                    setTimeout(() => reject(new Error('Timeout')), 3000)
+                );
+                
+                const response = new Promise((resolve) => {
+                    messageChannel.port1.onmessage = (event) => resolve(event.data);
+                });
+                
+                navigator.serviceWorker.controller.postMessage(
+                    { type: 'GET_CACHE_STATUS' },
+                    [messageChannel.port2]
+                );
+                
+                const data = await Promise.race([response, timeout]);
+                
+                if (data.success) {
+                    const count = data.cachedCount;
                     const total = availableFiles.length;
                     if (count === 0) {
-                        document.getElementById('cacheStatus').textContent = '❌ No songs cached (online mode only)';
+                        statusEl.textContent = '❌ No songs cached (online mode only)';
                     } else if (count === total) {
-                        document.getElementById('cacheStatus').textContent = `✅ All ${count} songs cached for offline`;
+                        statusEl.textContent = `✅ All ${count} songs cached for offline`;
                     } else {
-                        document.getElementById('cacheStatus').textContent = `⚠️ ${count} of ${total} songs cached`;
+                        statusEl.textContent = `⚠️ ${count} of ${total} songs cached`;
                     }
                 }
-            };
-            navigator.serviceWorker.controller.postMessage(
-                { type: 'GET_CACHE_STATUS' },
-                [messageChannel.port2]
-            );
+            } catch (error) {
+                console.error('Cache status check failed:', error);
+                statusEl.textContent = '❌ No songs cached (online mode only)';
+            }
         }
 
         async function cacheAllAudio() {
-            // Wait for service worker to be ready
-            if (!serviceWorkerReady || !navigator.serviceWorker.controller) {
-                // Try to wait for it
-                try {
-                    await navigator.serviceWorker.ready;
-                    serviceWorkerReady = true;
-                    // Give it a moment to set controller
-                    await new Promise(resolve => setTimeout(resolve, 500));
-                } catch (error) {
-                    alert('Service worker not ready. Please wait a few seconds and try again.\n\nIf this persists, try:\n1. Close all tabs with this app\n2. Reopen the app\n3. Wait 5 seconds\n4. Try again');
-                    return;
-                }
-            }
-
+            // Check if service worker is ready
             if (!navigator.serviceWorker.controller) {
-                alert('Service worker still initializing. Please wait 5 seconds and try again.');
+                alert('Offline mode not ready yet.\n\nPlease try:\n1. Wait 5 seconds\n2. Reload the page\n3. Try again\n\nIf still not working, close all tabs and reopen.');
                 return;
             }
 
@@ -1464,28 +1491,43 @@
             }
 
             if (!navigator.serviceWorker.controller) {
-                alert('Service worker not ready.');
+                alert('Offline mode not active. Nothing to clear.');
                 return;
             }
 
             document.getElementById('cacheStatus').textContent = '🗑️ Clearing cache...';
 
-            const messageChannel = new MessageChannel();
-            messageChannel.port1.onmessage = (event) => {
-                if (event.data.success) {
+            try {
+                const messageChannel = new MessageChannel();
+                
+                const timeout = new Promise((_, reject) => 
+                    setTimeout(() => reject(new Error('Timeout')), 5000)
+                );
+                
+                const response = new Promise((resolve) => {
+                    messageChannel.port1.onmessage = (event) => resolve(event.data);
+                });
+                
+                navigator.serviceWorker.controller.postMessage(
+                    { type: 'CLEAR_CACHE' },
+                    [messageChannel.port2]
+                );
+                
+                const data = await Promise.race([response, timeout]);
+                
+                if (data.success) {
                     document.getElementById('cacheStatus').textContent = '✅ Cache cleared';
                     alert('Cache cleared successfully. Songs will stream from internet until re-downloaded.');
                     setTimeout(updateCacheStatus, 1000);
                 }
-            };
-
-            navigator.serviceWorker.controller.postMessage(
-                { type: 'CLEAR_CACHE' },
-                [messageChannel.port2]
-            );
+            } catch (error) {
+                console.error('Clear cache error:', error);
+                document.getElementById('cacheStatus').textContent = '❌ Clear failed';
+                alert('Failed to clear cache: ' + error.message);
+            }
         }
 
-        console.log('🎵 Ravens Goal Soundboard v4.5.1 — Offline-capable');
+        console.log('🎵 Ravens Goal Soundboard v4.5.2 — Offline-capable (iOS Chrome compatible)');
     </script>
 </body>
 </html>
