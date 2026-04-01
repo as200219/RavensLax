@@ -33,32 +33,36 @@
 
         .tabs {
             display: flex;
+            flex-wrap: wrap;
             justify-content: center;
-            margin-bottom: 30px;
+            margin-bottom: 12px;
             background: rgba(45, 90, 54, 0.3);
-            border-radius: 15px;
-            padding: 5px;
+            border-radius: 12px;
+            padding: 4px;
             backdrop-filter: blur(10px);
             border: 1px solid rgba(245, 230, 168, 0.2);
+            gap: 3px;
         }
 
         .tab {
-            flex: 1;
-            padding: 15px 20px;
+            flex: 1 1 auto;
+            min-width: 0;
+            padding: 8px 10px;
             text-align: center;
             border: none;
             background: transparent;
             color: rgba(245, 230, 168, 0.7);
-            font-size: 16px;
+            font-size: 13px;
             cursor: pointer;
-            border-radius: 10px;
+            border-radius: 8px;
             transition: all 0.3s ease;
+            white-space: nowrap;
         }
 
         .tab.active {
             background: rgba(45, 90, 54, 0.6);
             color: #f5e6a8;
-            box-shadow: 0 4px 15px rgba(45, 90, 54, 0.3);
+            box-shadow: 0 2px 8px rgba(45, 90, 54, 0.3);
         }
 
         .content { max-width: 1200px; margin: 0 auto; }
@@ -121,6 +125,18 @@
         @keyframes pulse {
             0%, 100% { box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
             50% { box-shadow: 0 8px 25px rgba(74,124,89,0.6); }
+        }
+
+        /* Horn-only player buttons (no song assigned) */
+        .player-button.horn-only {
+            background: linear-gradient(135deg, #2a3d2e 0%, #1a2e1e 100%);
+            opacity: 0.75;
+        }
+        .player-button.horn-only .horn-only-label {
+            font-size: 10px;
+            opacity: 0.65;
+            margin-top: 3px;
+            letter-spacing: 0.03em;
         }
 
         /* Cache status borders — override has-audio's default border */
@@ -488,8 +504,8 @@
             .btn { width: 100%; }
             .modal-content { padding: 20px; margin: 10px; max-height: 90vh; }
             .time-controls { grid-template-columns: 1fr; }
-            .tabs { flex-direction: column; gap: 5px; }
-            .tab { padding: 12px 15px; }
+            .tabs { gap: 3px; }
+            .tab { flex: 0 0 calc(50% - 2px); padding: 8px 6px; font-size: 12px; }
             .sync-bar { flex-direction: column; align-items: flex-start; }
         }
 
@@ -507,7 +523,7 @@
 
     <div class="header">
         <h1 class="logo">🥍 Ravens Goal Soundboard</h1>
-        <p style="text-align:center; opacity:0.5; font-size:12px; margin:5px 0;">v4.5.7</p>
+        <p style="text-align:center; opacity:0.5; font-size:12px; margin:5px 0;">v4.5.8</p>
         <p style="text-align:center; opacity:0.8; margin-bottom:20px;">Ravenscroft Lacrosse Goal Music</p>
     </div>
 
@@ -1129,11 +1145,13 @@
                 });
             visible.forEach(player => {
                 const btn = document.createElement('button');
-                btn.className = 'player-button' + (player.audioFile ? ' has-audio' : '');
+                const isHornOnly = !player.audioFile;
+                btn.className = 'player-button' + (isHornOnly ? ' horn-only' : ' has-audio');
                 btn.id = 'player_' + player.number;
-                btn.onclick = () => playGoalSong(player.number);
+                btn.onclick = () => isHornOnly ? playHornOnly(player.number) : playGoalSong(player.number);
                 btn.innerHTML = '<div class="player-number">' + esc(String(player.jerseyNumber)) + '</div>'
-                              + '<div class="player-name">' + esc(player.name) + '</div>';
+                              + '<div class="player-name">' + esc(player.name) + '</div>'
+                              + (isHornOnly ? '<div class="horn-only-label">🎺 Horn only</div>' : '');
                 grid.appendChild(btn);
             });
             // Async — stamps green/red borders once IndexedDB is checked
@@ -1146,9 +1164,13 @@
             try { cached = await getAllCachedFiles(); } catch (e) { return; }
             players.forEach(player => {
                 const btn = document.getElementById('player_' + player.number);
-                if (!btn || !player.audioFile) return;
+                if (!btn) return;
+                // Horn-only buttons check whether the goal horn is cached
+                const fileToCheck = player.audioFile ? player.audioFile
+                                  : btn.classList.contains('horn-only') ? GOAL_HORN_FILE : null;
+                if (!fileToCheck) return;
                 btn.classList.remove('audio-cached', 'audio-online');
-                btn.classList.add(cached.includes(player.audioFile) ? 'audio-cached' : 'audio-online');
+                btn.classList.add(cached.includes(fileToCheck) ? 'audio-cached' : 'audio-online');
             });
         }
 
@@ -1160,6 +1182,44 @@
             toast.classList.add('show');
             if (_toastTimer) clearTimeout(_toastTimer);
             _toastTimer = setTimeout(() => { toast.classList.remove('show'); }, 2500);
+        }
+
+        async function playHornOnly(playerNumber) {
+            // Toggle off if this is already playing
+            if (currentPlayingPlayer === playerNumber) {
+                stopCurrentAudio();
+                return;
+            }
+            stopCurrentAudio();
+
+            currentPlayingPlayer = playerNumber;
+            const btn = document.getElementById('player_' + playerNumber);
+            if (btn) btn.classList.add('playing');
+
+            // Toast: check if horn is cached
+            let hornIsOffline = false;
+            try {
+                const cached = await getAllCachedFiles();
+                hornIsOffline = cached.includes(GOAL_HORN_FILE);
+            } catch (e) { /* ignore */ }
+            showPlayModeToast(hornIsOffline);
+
+            const hornUrl = await getAudioUrl(GOAL_HORN_FILE);
+            const hornAudio = new Audio(hornUrl);
+            currentHornAudio = hornAudio;
+            currentAudio = hornAudio;
+
+            hornAudio.addEventListener('ended', () => {
+                if (btn) btn.classList.remove('playing');
+                currentPlayingPlayer = null;
+                currentHornAudio = null;
+                currentAudio = null;
+            });
+
+            hornAudio.play().catch(e => {
+                console.error('Horn-only playback failed:', e);
+                stopCurrentAudio();
+            });
         }
 
         // ==================== MANAGE GRID ====================
@@ -1659,7 +1719,7 @@
             }
         }
 
-        console.log('🎵 Ravens Goal Soundboard v4.5.7 — Offline via IndexedDB (iOS Chrome compatible)');
+        console.log('🎵 Ravens Goal Soundboard v4.5.8 — Offline via IndexedDB (iOS Chrome compatible)');
     </script>
 </body>
 </html>
