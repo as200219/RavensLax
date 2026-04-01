@@ -557,7 +557,7 @@
 
     <div class="header">
         <h1 class="logo">🥍 Ravens Goal Soundboard</h1>
-        <p style="text-align:center; opacity:0.5; font-size:12px; margin:5px 0;">v4.5.9</p>
+        <p style="text-align:center; opacity:0.5; font-size:12px; margin:5px 0;">v4.6.0</p>
         <p style="text-align:center; opacity:0.8; margin-bottom:20px;">Ravenscroft Lacrosse Goal Music</p>
     </div>
 
@@ -757,7 +757,7 @@
         let offlineDB = null;
         let offlineReady = false;
 
-        // Favourites — persisted in localStorage as a JSON array of player numbers
+        // Favourites — loaded from GitHub settings; localStorage used only as fast local cache
         let favorites = new Set(
             JSON.parse(localStorage.getItem('ravens_favorites') || '[]')
         );
@@ -876,6 +876,11 @@
 
         function applySettings(settings) {
             if (!settings || !settings.players) return;
+            // Restore favourites from GitHub (source of truth across all devices)
+            if (Array.isArray(settings.favorites)) {
+                favorites = new Set(settings.favorites);
+                saveFavorites(); // keep localStorage in sync as a fast local cache
+            }
             settings.players.forEach(sp => {
                 const idx = sp.number - 1;
                 if (idx >= 0 && idx < 30) {
@@ -902,6 +907,7 @@
             const settings = {
                 version: '4.0',
                 lastUpdated: new Date().toISOString(),
+                favorites: [...favorites],
                 players: players
                     .filter(p => p.name || p.audioFile || p.jerseyNumber)
                     .map(p => ({
@@ -1241,8 +1247,9 @@
             } else {
                 favorites.add(playerNumber);
             }
-            saveFavorites();
-            generatePlayerGrid();
+            saveFavorites();        // instant local update
+            generatePlayerGrid();   // re-render immediately
+            saveToGitHub();         // push to GitHub so all devices sync on next load
         }
 
         async function refreshCacheBadges() {
@@ -1806,7 +1813,7 @@
             }
         }
 
-        console.log('🎵 Ravens Goal Soundboard v4.5.9 — Offline via IndexedDB (iOS Chrome compatible)');
+        console.log('🎵 Ravens Goal Soundboard v4.6.0 — Offline via IndexedDB (iOS Chrome compatible)');
     </script>
 </body>
 </html>
