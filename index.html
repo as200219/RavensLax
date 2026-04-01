@@ -123,6 +123,44 @@
             50% { box-shadow: 0 8px 25px rgba(74,124,89,0.6); }
         }
 
+        /* Cache status borders — override has-audio's default border */
+        .player-button.audio-cached {
+            border: 3px solid #00e676 !important;
+            box-shadow: 0 0 10px rgba(0, 230, 118, 0.45), 0 4px 15px rgba(0,0,0,0.3);
+        }
+        .player-button.audio-cached:hover {
+            box-shadow: 0 0 16px rgba(0, 230, 118, 0.7), 0 8px 25px rgba(45,90,54,0.4);
+        }
+        .player-button.audio-online {
+            border: 3px solid #ff3d3d !important;
+            box-shadow: 0 0 10px rgba(255, 61, 61, 0.45), 0 4px 15px rgba(0,0,0,0.3);
+        }
+        .player-button.audio-online:hover {
+            box-shadow: 0 0 16px rgba(255, 61, 61, 0.7), 0 8px 25px rgba(45,90,54,0.4);
+        }
+
+        /* Play-mode toast */
+        #playModeToast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: rgba(20, 40, 20, 0.92);
+            color: #f5e6a8;
+            padding: 8px 18px;
+            border-radius: 20px;
+            font-size: 13px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            z-index: 9999;
+            white-space: nowrap;
+        }
+        #playModeToast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
         /* Sync status bar */
         .sync-bar {
             background: rgba(45, 90, 54, 0.2);
@@ -465,9 +503,11 @@
 </head>
 <body>
 
+    <div id="playModeToast"></div>
+
     <div class="header">
         <h1 class="logo">🥍 Ravens Goal Soundboard</h1>
-        <p style="text-align:center; opacity:0.5; font-size:12px; margin:5px 0;">v4.5.6</p>
+        <p style="text-align:center; opacity:0.5; font-size:12px; margin:5px 0;">v4.5.7</p>
         <p style="text-align:center; opacity:0.8; margin-bottom:20px;">Ravenscroft Lacrosse Goal Music</p>
     </div>
 
@@ -1008,6 +1048,14 @@
             if (btn) btn.classList.add('playing');
 
             // Get audio URLs (may be from offline cache or network)
+            // Check cache status BEFORE resolving URL so we can show the toast
+            let clipIsOffline = false;
+            try {
+                const cached = await getAllCachedFiles();
+                clipIsOffline = cached.includes(player.audioFile);
+            } catch (e) { /* ignore */ }
+            showPlayModeToast(clipIsOffline);
+
             const clipUrl = await getAudioUrl(player.audioFile);
             const hornUrl = await getAudioUrl(GOAL_HORN_FILE);
 
@@ -1088,6 +1136,30 @@
                               + '<div class="player-name">' + esc(player.name) + '</div>';
                 grid.appendChild(btn);
             });
+            // Async — stamps green/red borders once IndexedDB is checked
+            refreshCacheBadges();
+        }
+
+        async function refreshCacheBadges() {
+            if (!offlineReady) return;
+            let cached = [];
+            try { cached = await getAllCachedFiles(); } catch (e) { return; }
+            players.forEach(player => {
+                const btn = document.getElementById('player_' + player.number);
+                if (!btn || !player.audioFile) return;
+                btn.classList.remove('audio-cached', 'audio-online');
+                btn.classList.add(cached.includes(player.audioFile) ? 'audio-cached' : 'audio-online');
+            });
+        }
+
+        let _toastTimer = null;
+        function showPlayModeToast(isOffline) {
+            const toast = document.getElementById('playModeToast');
+            if (!toast) return;
+            toast.textContent = isOffline ? '📲 Playing from device (offline)' : '🌐 Streaming from internet';
+            toast.classList.add('show');
+            if (_toastTimer) clearTimeout(_toastTimer);
+            _toastTimer = setTimeout(() => { toast.classList.remove('show'); }, 2500);
         }
 
         // ==================== MANAGE GRID ====================
@@ -1541,6 +1613,7 @@
                     document.getElementById('cacheStatus').textContent = '✅ All songs cleared';
                     alert('All songs cleared from phone storage.\n\nSongs will stream from internet until re-downloaded.');
                     setTimeout(updateOfflineStatus, 500);
+                    refreshCacheBadges();
                 } else {
                     document.getElementById('cacheStatus').textContent = '❌ Clear failed';
                     alert('Failed to clear songs. Please try again.');
@@ -1579,13 +1652,14 @@
                 } else {
                     statusEl.textContent = `⚠️ ${cachedCount} of ${total} songs downloaded`;
                 }
+                refreshCacheBadges();
             } catch (error) {
                 console.error('Status check failed:', error);
                 statusEl.textContent = '❌ No songs downloaded';
             }
         }
 
-        console.log('🎵 Ravens Goal Soundboard v4.5.6 — Offline via IndexedDB (iOS Chrome compatible)');
+        console.log('🎵 Ravens Goal Soundboard v4.5.7 — Offline via IndexedDB (iOS Chrome compatible)');
     </script>
 </body>
 </html>
