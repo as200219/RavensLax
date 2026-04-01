@@ -250,6 +250,14 @@
 
         .btn-danger:hover { background: linear-gradient(135deg, #a50000, #8b0000); }
 
+        .btn-warning {
+            background: linear-gradient(135deg, #7a4f00, #5c3c00);
+            color: #f5e6a8;
+            border: 1px solid rgba(245, 200, 80, 0.3);
+        }
+
+        .btn-warning:hover { background: linear-gradient(135deg, #a06800, #7a4f00); }
+
         /* Settings Panel */
         .settings-section {
             background: rgba(45, 90, 54, 0.2);
@@ -459,7 +467,7 @@
 
     <div class="header">
         <h1 class="logo">🥍 Ravens Goal Soundboard</h1>
-        <p style="text-align:center; opacity:0.5; font-size:12px; margin:5px 0;">v4.5.4</p>
+        <p style="text-align:center; opacity:0.5; font-size:12px; margin:5px 0;">v4.5.5</p>
         <p style="text-align:center; opacity:0.8; margin-bottom:20px;">Ravenscroft Lacrosse Goal Music</p>
     </div>
 
@@ -541,6 +549,10 @@
                         <button class="btn btn-primary" onclick="downloadAllSongs()" style="width:100%; margin-bottom:8px;">
                             📥 Download All Songs
                         </button>
+                        <button id="retryFailedBtn" class="btn btn-warning" onclick="retryFailedSongs()" style="width:100%; margin-bottom:8px; display:none;">
+                            🔄 Retry Failed Songs
+                        </button>
+                        <div id="failedFilesList" style="display:none; margin-bottom:8px; font-size:12px; background:rgba(255,100,0,0.15); border:1px solid rgba(255,100,0,0.4); border-radius:6px; padding:8px;"></div>
                         <button class="btn btn-danger" onclick="clearAllSongs()" style="width:100%;">
                             🗑️ Clear Downloaded Songs
                         </button>
@@ -1417,6 +1429,69 @@
         
 
 
+        // Tracks files that failed their last download attempt: [{filename, reason}]
+        let lastFailedFiles = [];
+
+        async function _downloadFileList(filesToDownload) {
+            const statusEl = document.getElementById('cacheStatus');
+            const retryBtn = document.getElementById('retryFailedBtn');
+            const failedListEl = document.getElementById('failedFilesList');
+            const total = filesToDownload.length;
+
+            statusEl.textContent = `⬇️ Downloading 0 of ${total} songs...`;
+            retryBtn.style.display = 'none';
+            failedListEl.style.display = 'none';
+
+            let downloaded = 0;
+            const failedFiles = [];
+
+            for (const filename of filesToDownload) {
+                try {
+                    const url = AUDIO_RAW_BASE + '/' + encodeURIComponent(filename);
+                    const response = await fetch(url);
+                    if (response.ok) {
+                        const blob = await response.blob();
+                        await saveToOfflineDB(filename, blob);
+                        downloaded++;
+                        statusEl.textContent = `⬇️ Downloading ${downloaded} of ${total} songs...`;
+                        console.log(`✅ Downloaded: ${filename}`);
+                    } else {
+                        const reason = `HTTP ${response.status}${
+                            response.status === 404 ? ' (file not found in repo)' :
+                            response.status === 403 ? ' (access denied)' :
+                            response.status === 429 ? ' (rate limited — wait and retry)' : ''
+                        }`;
+                        failedFiles.push({ filename, reason });
+                        console.warn(`❌ Failed to download: ${filename} — ${reason}`);
+                    }
+                } catch (error) {
+                    const reason = (error.message.includes('NetworkError') || error.message.includes('Failed to fetch'))
+                        ? 'Network error (check internet connection)'
+                        : `Error: ${error.message}`;
+                    failedFiles.push({ filename, reason });
+                    console.error(`❌ Error downloading ${filename}:`, error);
+                }
+            }
+
+            lastFailedFiles = failedFiles;
+
+            if (failedFiles.length === 0) {
+                statusEl.textContent = `✅ All ${downloaded} songs downloaded for offline!`;
+                failedListEl.style.display = 'none';
+                retryBtn.style.display = 'none';
+            } else {
+                statusEl.textContent = `⚠️ ${downloaded} of ${total} songs downloaded — ${failedFiles.length} failed`;
+                const lines = failedFiles.map(f =>
+                    `<div style="margin-bottom:4px;">❌ <b>${f.filename}</b><br><span style="opacity:0.7;">${f.reason}</span></div>`
+                );
+                failedListEl.innerHTML = `<div style="margin-bottom:6px; font-weight:bold;">Failed downloads:</div>${lines.join('')}`;
+                failedListEl.style.display = 'block';
+                retryBtn.style.display = 'block';
+            }
+
+            updateOfflineStatus();
+        }
+
         async function downloadAllSongs() {
             if (!offlineReady) {
                 alert('Offline storage not available on this browser.');
@@ -1428,49 +1503,21 @@
                 return;
             }
 
-            // Get all assigned audio files
+            // Get all assigned audio files + goal horn
             const assignedFiles = players
                 .filter(p => p.audioFile)
                 .map(p => p.audioFile);
-            
-            // Add goal horn
             assignedFiles.push(GOAL_HORN_FILE);
             const uniqueFiles = [...new Set(assignedFiles)];
 
-            document.getElementById('cacheStatus').textContent = `⬇️ Downloading 0 of ${uniqueFiles.length} songs...`;
+            await _downloadFileList(uniqueFiles);
+        }
 
-            let downloaded = 0;
-            let failed = 0;
-
-            for (const filename of uniqueFiles) {
-                try {
-                    const url = AUDIO_RAW_BASE + '/' + encodeURIComponent(filename);
-                    const response = await fetch(url);
-                    if (response.ok) {
-                        const blob = await response.blob();
-                        await saveToOfflineDB(filename, blob);
-                        downloaded++;
-                        document.getElementById('cacheStatus').textContent = `⬇️ Downloading ${downloaded} of ${uniqueFiles.length} songs...`;
-                        console.log(`✅ Downloaded: ${filename}`);
-                    } else {
-                        failed++;
-                        console.warn(`❌ Failed to download: ${filename}`);
-                    }
-                } catch (error) {
-                    failed++;
-                    console.error(`❌ Error downloading ${filename}:`, error);
-                }
-            }
-
-            if (failed === 0) {
-                document.getElementById('cacheStatus').textContent = `✅ All ${downloaded} songs downloaded for offline!`;
-                alert(`Success! ${downloaded} songs downloaded to your phone.\n\nYou can now use the soundboard without internet!`);
-            } else {
-                document.getElementById('cacheStatus').textContent = `⚠️ ${downloaded} songs downloaded, ${failed} failed`;
-                alert(`Downloaded ${downloaded} songs, but ${failed} failed.\n\nYou can try again to download the missing songs.`);
-            }
-            
-            updateOfflineStatus();
+        async function retryFailedSongs() {
+            if (lastFailedFiles.length === 0) return;
+            const filesToRetry = lastFailedFiles.map(f => f.filename);
+            lastFailedFiles = [];
+            await _downloadFileList(filesToRetry);
         }
 
         async function clearAllSongs() {
@@ -1535,7 +1582,7 @@
             }
         }
 
-        console.log('🎵 Ravens Goal Soundboard v4.5.4 — Offline via IndexedDB (iOS Chrome compatible)');
+        console.log('🎵 Ravens Goal Soundboard v4.5.5 — Offline via IndexedDB (iOS Chrome compatible)');
     </script>
 </body>
 </html>
