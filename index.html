@@ -189,6 +189,48 @@
             box-shadow: 0 0 16px rgba(255, 61, 61, 0.7), 0 8px 25px rgba(45,90,54,0.4);
         }
 
+        /* Soundboard top bar (anthem + offline mini) */
+        .sb-top-bar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 14px;
+            align-items: center;
+        }
+        .sb-anthem-btn {
+            flex: 0 0 auto;
+            min-width: 130px;
+            background: linear-gradient(135deg, #3a2060, #22104a);
+            font-size: 15px;
+            font-weight: 700;
+            padding: 10px 14px;
+            letter-spacing: 0.3px;
+            border: 2px solid rgba(200,170,255,0.25);
+        }
+        .sb-anthem-btn:hover {
+            background: linear-gradient(135deg, #4e2d80, #2e1660);
+            border-color: rgba(200,170,255,0.5);
+        }
+        .sb-anthem-btn.playing {
+            background: linear-gradient(135deg, #2d5016, #1a3a0a);
+            border-color: #00e676;
+            box-shadow: 0 0 16px rgba(0,230,118,0.5);
+        }
+        .sb-offline-mini {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        /* Cache border glow for anthem button */
+        #player_anthem.audio-cached {
+            border: 3px solid #00e676 !important;
+            box-shadow: 0 0 10px rgba(0, 230, 118, 0.45), 0 4px 15px rgba(0,0,0,0.3);
+        }
+        #player_anthem.audio-online {
+            border: 3px solid #ff3d3d !important;
+            box-shadow: 0 0 10px rgba(255, 61, 61, 0.45), 0 4px 15px rgba(0,0,0,0.3);
+        }
+
         /* Play-mode toast */
         #playModeToast {
             position: fixed;
@@ -572,6 +614,19 @@
 
         <!-- Soundboard Tab -->
         <div id="soundboard" class="tab-content active">
+            <!-- National Anthem + Offline mini bar -->
+            <div class="sb-top-bar">
+                <button id="player_anthem" class="btn sb-anthem-btn" onclick="playNationalAnthem()">
+                    🎵 National Anthem
+                </button>
+                <div class="sb-offline-mini">
+                    <div id="cacheStatusSB" style="font-size:12px; text-align:center; opacity:0.8;">⏳ Checking...</div>
+                    <button class="btn btn-primary" onclick="downloadAllSongs()" style="width:100%; padding:7px 10px; font-size:13px;">
+                        📥 Download All Songs
+                    </button>
+                </div>
+            </div>
+
             <div class="soundboard-grid" id="playerGrid"></div>
             <div class="sync-bar">
                 <span id="syncStatus">🔄 Loading from GitHub...</span>
@@ -734,6 +789,7 @@
         const AUDIO_API_BASE = 'https://api.github.com/repos/as200219/RavensLax/contents/Ravens%20Goal%20Music/audio-files';
         const SETTINGS_FILE  = 'soundboard-settings.json';
         const GOAL_HORN_FILE = 'carolina-hurricanes-goal-horn-made-with-Voicemod.mp3';
+        const NATIONAL_ANTHEM_FILE = 'National Anthem - Star Spangled Banner - U.S.A. - H.D. (SPOTISAVER).mp3';
 
         // ==================== STATE ====================
         // players[0] = player number 1, players[29] = player number 30
@@ -1266,6 +1322,12 @@
                 btn.classList.remove('audio-cached', 'audio-online');
                 btn.classList.add(cached.includes(fileToCheck) ? 'audio-cached' : 'audio-online');
             });
+            // Badge the national anthem button
+            const anthemBtn = document.getElementById('player_anthem');
+            if (anthemBtn) {
+                anthemBtn.classList.remove('audio-cached', 'audio-online');
+                anthemBtn.classList.add(cached.includes(NATIONAL_ANTHEM_FILE) ? 'audio-cached' : 'audio-online');
+            }
         }
 
         let _toastTimer = null;
@@ -1312,6 +1374,41 @@
 
             hornAudio.play().catch(e => {
                 console.error('Horn-only playback failed:', e);
+                stopCurrentAudio();
+            });
+        }
+
+        async function playNationalAnthem() {
+            const ANTHEM_SENTINEL = 'anthem';
+            if (currentPlayingPlayer === ANTHEM_SENTINEL) {
+                stopCurrentAudio();
+                return;
+            }
+            stopCurrentAudio();
+
+            currentPlayingPlayer = ANTHEM_SENTINEL;
+            const btn = document.getElementById('player_anthem');
+            if (btn) btn.classList.add('playing');
+
+            let isOffline = false;
+            try {
+                const cached = await getAllCachedFiles();
+                isOffline = cached.includes(NATIONAL_ANTHEM_FILE);
+            } catch (e) { /* ignore */ }
+            showPlayModeToast(isOffline);
+
+            const anthemUrl = await getAudioUrl(NATIONAL_ANTHEM_FILE);
+            const anthemAudio = new Audio(anthemUrl);
+            currentAudio = anthemAudio;
+
+            anthemAudio.addEventListener('ended', () => {
+                if (btn) btn.classList.remove('playing');
+                currentPlayingPlayer = null;
+                currentAudio = null;
+            });
+
+            anthemAudio.play().catch(e => {
+                console.error('Anthem playback failed:', e);
                 stopCurrentAudio();
             });
         }
@@ -1732,11 +1829,12 @@
                 return;
             }
 
-            // Get all assigned audio files + goal horn
+            // Get all assigned audio files + goal horn + national anthem
             const assignedFiles = players
                 .filter(p => p.audioFile)
                 .map(p => p.audioFile);
             assignedFiles.push(GOAL_HORN_FILE);
+            assignedFiles.push(NATIONAL_ANTHEM_FILE);
             const uniqueFiles = [...new Set(assignedFiles)];
 
             await _downloadFileList(uniqueFiles);
@@ -1785,6 +1883,8 @@
             
             if (!offlineReady) {
                 statusEl.textContent = '❌ Offline mode unavailable';
+                const sbEl = document.getElementById('cacheStatusSB');
+                if (sbEl) sbEl.textContent = statusEl.textContent;
                 return;
             }
             
@@ -1794,6 +1894,7 @@
                     .filter(p => p.audioFile)
                     .map(p => p.audioFile);
                 assignedFiles.push(GOAL_HORN_FILE);
+                assignedFiles.push(NATIONAL_ANTHEM_FILE);
                 const uniqueAssigned = [...new Set(assignedFiles)];
                 
                 const cachedCount = uniqueAssigned.filter(f => cachedFiles.includes(f)).length;
@@ -1806,10 +1907,15 @@
                 } else {
                     statusEl.textContent = `⚠️ ${cachedCount} of ${total} songs downloaded`;
                 }
+                // Mirror status to soundboard mini bar
+                const statusSB = document.getElementById('cacheStatusSB');
+                if (statusSB) statusSB.textContent = statusEl.textContent;
                 refreshCacheBadges();
             } catch (error) {
                 console.error('Status check failed:', error);
                 statusEl.textContent = '❌ No songs downloaded';
+                const statusSB = document.getElementById('cacheStatusSB');
+                if (statusSB) statusSB.textContent = statusEl.textContent;
             }
         }
 
