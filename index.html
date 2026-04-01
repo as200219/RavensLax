@@ -457,9 +457,9 @@
 </head>
 <body>
 
-    <div class="header" style="position:relative;">
-        <div style="position:absolute;top:0;right:0;opacity:0.5;font-size:13px;letter-spacing:0.05em;">v4.5</div>
+    <div class="header">
         <h1 class="logo">🥍 Ravens Goal Soundboard</h1>
+        <p style="text-align:center; opacity:0.5; font-size:12px; margin:5px 0;">v4.5.1</p>
         <p style="text-align:center; opacity:0.8; margin-bottom:20px;">Ravenscroft Lacrosse Goal Music</p>
     </div>
 
@@ -1318,33 +1318,59 @@
         // ==================== SERVICE WORKER ====================
         let serviceWorkerReady = false;
         
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', async () => {
-                try {
-                    const registration = await navigator.serviceWorker.register('./service-worker.js');
-                    console.log('✅ Service Worker registered:', registration.scope);
-                    
-                    // Wait for service worker to be ready
-                    await navigator.serviceWorker.ready;
-                    serviceWorkerReady = true;
-                    console.log('✅ Service Worker ready');
-                    
-                    // Update cache status after a short delay to ensure controller is set
-                    setTimeout(updateCacheStatus, 500);
-                } catch (error) {
-                    console.error('❌ Service Worker registration failed:', error);
-                    document.getElementById('cacheStatus').textContent = '❌ Offline mode unavailable';
+        async function initServiceWorker() {
+            if (!('serviceWorker' in navigator)) {
+                const statusEl = document.getElementById('cacheStatus');
+                if (statusEl) statusEl.textContent = '❌ Browser does not support offline mode';
+                return;
+            }
+
+            try {
+                // Register service worker
+                const registration = await navigator.serviceWorker.register('./service-worker.js');
+                console.log('✅ Service Worker registered:', registration.scope);
+                
+                // Wait for it to be ready and active
+                await navigator.serviceWorker.ready;
+                console.log('✅ Service Worker ready');
+                
+                // Wait for controller to be set (may take a moment on first load)
+                let attempts = 0;
+                while (!navigator.serviceWorker.controller && attempts < 20) {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    attempts++;
                 }
-            });
-            
-            // Listen for controller change (when service worker activates)
+                
+                if (navigator.serviceWorker.controller) {
+                    serviceWorkerReady = true;
+                    console.log('✅ Service Worker controller active');
+                    updateCacheStatus();
+                } else {
+                    console.warn('⚠️ Service Worker registered but no controller yet');
+                    const statusEl = document.getElementById('cacheStatus');
+                    if (statusEl) statusEl.textContent = '⚠️ Reload page to activate offline mode';
+                }
+            } catch (error) {
+                console.error('❌ Service Worker error:', error);
+                const statusEl = document.getElementById('cacheStatus');
+                if (statusEl) statusEl.textContent = '❌ Offline mode unavailable';
+            }
+        }
+        
+        // Initialize service worker when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initServiceWorker);
+        } else {
+            initServiceWorker();
+        }
+        
+        // Listen for controller change (when service worker activates)
+        if ('serviceWorker' in navigator) {
             navigator.serviceWorker.addEventListener('controllerchange', () => {
                 console.log('✅ Service Worker controller changed');
                 serviceWorkerReady = true;
-                setTimeout(updateCacheStatus, 500);
+                updateCacheStatus();
             });
-        } else {
-            document.getElementById('cacheStatus').textContent = '❌ Browser does not support offline mode';
         }
 
         // ==================== CACHE MANAGEMENT ====================
@@ -1459,7 +1485,7 @@
             );
         }
 
-        console.log('🎵 Ravens Goal Soundboard v4.5 — Offline-capable');
+        console.log('🎵 Ravens Goal Soundboard v4.5.1 — Offline-capable');
     </script>
 </body>
 </html>
