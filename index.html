@@ -467,7 +467,7 @@
 
     <div class="header">
         <h1 class="logo">🥍 Ravens Goal Soundboard</h1>
-        <p style="text-align:center; opacity:0.5; font-size:12px; margin:5px 0;">v4.5.5</p>
+        <p style="text-align:center; opacity:0.5; font-size:12px; margin:5px 0;">v4.5.6</p>
         <p style="text-align:center; opacity:0.8; margin-bottom:20px;">Ravenscroft Lacrosse Goal Music</p>
     </div>
 
@@ -1233,12 +1233,15 @@
             }
 
             let html = '<div class="settings-grid">';
-            active.sort((a, b) => a.number - b.number).forEach(p => {
+            active.sort((a, b) => {
+                const na = a.jerseyNumber !== '' ? parseInt(a.jerseyNumber) : 999;
+                const nb = b.jerseyNumber !== '' ? parseInt(b.jerseyNumber) : 999;
+                return na - nb;
+            }).forEach(p => {
+                const jerseyLabel = p.jerseyNumber !== '' ? '#' + esc(p.jerseyNumber) : '—';
                 html += '<div class="setting-group">'
-                      + '<h3>Player #' + p.number + '</h3>'
+                      + '<h3>' + jerseyLabel + ' ' + (esc(p.name) || 'Unnamed') + '</h3>'
                       + '<div style="text-align:center;margin:15px 0;">'
-                      + '<p><strong>Name:</strong> '    + (esc(p.name)         || 'Not set') + '</p>'
-                      + '<p><strong>Jersey:</strong> '  + (esc(p.jerseyNumber) || 'Not set') + '</p>'
                       + '<p><strong>Song:</strong> '    + (p.audioFile ? '✅ ' + esc(p.audioFile) : '❌ None') + '</p>'
                       + (p.audioFile ? '<p><strong>Clip:</strong> ' + p.startTime + 's – ' + p.endTime + 's</p>' : '')
                       + '</div>'
@@ -1582,7 +1585,7 @@
             }
         }
 
-        console.log('🎵 Ravens Goal Soundboard v4.5.5 — Offline via IndexedDB (iOS Chrome compatible)');
+        console.log('🎵 Ravens Goal Soundboard v4.5.6 — Offline via IndexedDB (iOS Chrome compatible)');
     </script>
 </body>
 </html>
