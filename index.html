@@ -458,7 +458,7 @@
 <body>
 
     <div class="header" style="position:relative;">
-        <div style="position:absolute;top:0;right:0;opacity:0.5;font-size:13px;letter-spacing:0.05em;">v4.4</div>
+        <div style="position:absolute;top:0;right:0;opacity:0.5;font-size:13px;letter-spacing:0.05em;">v4.5</div>
         <h1 class="logo">🥍 Ravens Goal Soundboard</h1>
         <p style="text-align:center; opacity:0.8; margin-bottom:20px;">Ravenscroft Lacrosse Goal Music</p>
     </div>
@@ -474,11 +474,11 @@
 
         <!-- Soundboard Tab -->
         <div id="soundboard" class="tab-content active">
+            <div class="soundboard-grid" id="playerGrid"></div>
             <div class="sync-bar">
                 <span id="syncStatus">🔄 Loading from GitHub...</span>
                 <button class="btn btn-primary" onclick="manualSync()">🔄 Refresh</button>
             </div>
-            <div class="soundboard-grid" id="playerGrid"></div>
         </div>
 
         <!-- Manage Songs Tab -->
@@ -529,6 +529,21 @@
                             <div class="file-input">Choose Backup File (.json)</div>
                             <input type="file" accept=".json" onchange="importSettings(this)">
                         </div>
+                    </div>
+
+                    <!-- Offline Cache -->
+                    <div class="setting-group">
+                        <h3>📥 Offline Mode</h3>
+                        <p style="margin-bottom:15px; opacity:0.8; font-size:13px;">Download songs for offline playback during games with poor internet.</p>
+                        <div id="cacheStatus" style="margin-bottom:10px; font-size:13px; text-align:center; opacity:0.8;">
+                            Checking cache status...
+                        </div>
+                        <button class="btn btn-primary" onclick="cacheAllAudio()" style="width:100%; margin-bottom:8px;">
+                            📥 Download All Songs
+                        </button>
+                        <button class="btn btn-danger" onclick="clearAudioCache()" style="width:100%;">
+                            🗑️ Clear Cache
+                        </button>
                     </div>
 
                     <!-- Install -->
@@ -1300,7 +1315,116 @@
             }
         }
 
-        console.log('🎵 Ravens Goal Soundboard v4.4 — GitHub-powered sync');
+        // ==================== SERVICE WORKER ====================
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js')
+                    .then(registration => {
+                        console.log('✅ Service Worker registered:', registration.scope);
+                        updateCacheStatus();
+                    })
+                    .catch(error => {
+                        console.error('❌ Service Worker registration failed:', error);
+                    });
+            });
+        }
+
+        // ==================== CACHE MANAGEMENT ====================
+        async function updateCacheStatus() {
+            if (!navigator.serviceWorker.controller) {
+                document.getElementById('cacheStatus').textContent = '⚠️ Service worker not active yet. Refresh page.';
+                return;
+            }
+
+            const messageChannel = new MessageChannel();
+            messageChannel.port1.onmessage = (event) => {
+                if (event.data.success) {
+                    const count = event.data.cachedCount;
+                    const total = availableFiles.length;
+                    if (count === 0) {
+                        document.getElementById('cacheStatus').textContent = '❌ No songs cached (online mode only)';
+                    } else if (count === total) {
+                        document.getElementById('cacheStatus').textContent = `✅ All ${count} songs cached for offline`;
+                    } else {
+                        document.getElementById('cacheStatus').textContent = `⚠️ ${count} of ${total} songs cached`;
+                    }
+                }
+            };
+            navigator.serviceWorker.controller.postMessage(
+                { type: 'GET_CACHE_STATUS' },
+                [messageChannel.port2]
+            );
+        }
+
+        async function cacheAllAudio() {
+            if (!navigator.serviceWorker.controller) {
+                alert('Service worker not ready. Please refresh the page and try again.');
+                return;
+            }
+
+            if (availableFiles.length === 0) {
+                alert('No audio files to cache. Please sync from GitHub first.');
+                return;
+            }
+
+            // Get all assigned audio files
+            const assignedFiles = players
+                .filter(p => p.audioFile)
+                .map(p => p.audioFile);
+            
+            // Add goal horn
+            assignedFiles.push(GOAL_HORN_FILE);
+
+            // Build full URLs
+            const audioUrls = [...new Set(assignedFiles)].map(filename => getAudioUrl(filename));
+
+            document.getElementById('cacheStatus').textContent = `⬇️ Downloading ${audioUrls.length} songs...`;
+
+            const messageChannel = new MessageChannel();
+            messageChannel.port1.onmessage = (event) => {
+                if (event.data.success) {
+                    document.getElementById('cacheStatus').textContent = `✅ All ${audioUrls.length} songs cached for offline!`;
+                    alert(`Success! ${audioUrls.length} songs downloaded for offline playback.\n\nYou can now use the soundboard without internet!`);
+                } else {
+                    document.getElementById('cacheStatus').textContent = '❌ Cache failed';
+                    alert('Failed to cache audio files. Please try again.');
+                }
+            };
+
+            navigator.serviceWorker.controller.postMessage(
+                { type: 'CACHE_AUDIO_FILES', urls: audioUrls },
+                [messageChannel.port2]
+            );
+        }
+
+        async function clearAudioCache() {
+            if (!confirm('Clear all cached songs? You\'ll need to re-download for offline use.')) {
+                return;
+            }
+
+            if (!navigator.serviceWorker.controller) {
+                alert('Service worker not ready.');
+                return;
+            }
+
+            document.getElementById('cacheStatus').textContent = '🗑️ Clearing cache...';
+
+            const messageChannel = new MessageChannel();
+            messageChannel.port1.onmessage = (event) => {
+                if (event.data.success) {
+                    document.getElementById('cacheStatus').textContent = '✅ Cache cleared';
+                    alert('Cache cleared successfully. Songs will stream from internet until re-downloaded.');
+                    setTimeout(updateCacheStatus, 1000);
+                }
+            };
+
+            navigator.serviceWorker.controller.postMessage(
+                { type: 'CLEAR_CACHE' },
+                [messageChannel.port2]
+            );
+        }
+
+        console.log('🎵 Ravens Goal Soundboard v4.5 — Offline-capable');
     </script>
 </body>
 </html>
