@@ -459,7 +459,7 @@
 
     <div class="header">
         <h1 class="logo">🥍 Ravens Goal Soundboard</h1>
-        <p style="text-align:center; opacity:0.5; font-size:12px; margin:5px 0;">v4.5.3</p>
+        <p style="text-align:center; opacity:0.5; font-size:12px; margin:5px 0;">v4.5.4</p>
         <p style="text-align:center; opacity:0.8; margin-bottom:20px;">Ravenscroft Lacrosse Goal Music</p>
     </div>
 
@@ -1383,7 +1383,37 @@
                 const store = transaction.objectStore('audioFiles');
                 const request = store.get(filename);
                 request.onsuccess = () => {
-                    if (request.result && request.result.blob) {\n                        resolve(URL.createObjectURL(request.result.blob));\n                    } else {\n                        resolve(null);\n                    }\n                };\n                request.onerror = () => resolve(null);\n            });\n        }\n        \n        async function getAllCachedFiles() {\n            if (!offlineDB) return [];\n            return new Promise((resolve) => {\n                const transaction = offlineDB.transaction(['audioFiles'], 'readonly');\n                const store = transaction.objectStore('audioFiles');\n                const request = store.getAllKeys();\n                request.onsuccess = () => resolve(request.result || []);\n                request.onerror = () => resolve([]);\n            });\n        }\n        \n        async function clearOfflineDB() {\n            if (!offlineDB) return false;\n            return new Promise((resolve) => {\n                const transaction = offlineDB.transaction(['audioFiles'], 'readwrite');\n                const store = transaction.objectStore('audioFiles');\n                const request = store.clear();\n                request.onsuccess = () => resolve(true);\n                request.onerror = () => resolve(false);\n            });\n        }
+                    if (request.result && request.result.blob) {
+                        resolve(URL.createObjectURL(request.result.blob));
+                    } else {
+                        resolve(null);
+                    }
+                };
+                request.onerror = () => resolve(null);
+            });
+        }
+        
+        async function getAllCachedFiles() {
+            if (!offlineDB) return [];
+            return new Promise((resolve) => {
+                const transaction = offlineDB.transaction(['audioFiles'], 'readonly');
+                const store = transaction.objectStore('audioFiles');
+                const request = store.getAllKeys();
+                request.onsuccess = () => resolve(request.result || []);
+                request.onerror = () => resolve([]);
+            });
+        }
+        
+        async function clearOfflineDB() {
+            if (!offlineDB) return false;
+            return new Promise((resolve) => {
+                const transaction = offlineDB.transaction(['audioFiles'], 'readwrite');
+                const store = transaction.objectStore('audioFiles');
+                const request = store.clear();
+                request.onsuccess = () => resolve(true);
+                request.onerror = () => resolve(false);
+            });
+        }
         
 
 
@@ -1505,7 +1535,7 @@
             }
         }
 
-        console.log('🎵 Ravens Goal Soundboard v4.5.3 — Offline via IndexedDB (iOS Chrome compatible)');
+        console.log('🎵 Ravens Goal Soundboard v4.5.4 — Offline via IndexedDB (iOS Chrome compatible)');
     </script>
 </body>
 </html>
