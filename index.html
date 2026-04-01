@@ -117,6 +117,40 @@
         .player-button .player-number { font-size: 24px; margin-bottom: 5px; }
         .player-button .player-name { font-size: 12px; opacity: 0.8; line-height: 1.2; }
 
+        /* Favourite star */
+        .player-button { position: relative; }
+        .fav-star {
+            position: absolute;
+            top: 6px;
+            right: 8px;
+            font-size: 14px;
+            line-height: 1;
+            cursor: pointer;
+            opacity: 0.35;
+            transition: opacity 0.2s, transform 0.15s;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        .fav-star:hover { opacity: 0.85; transform: scale(1.25); }
+        .player-button.is-fav .fav-star { opacity: 1; }
+
+        /* Section divider between fav and non-fav rows */
+        .grid-section-label {
+            grid-column: 1 / -1;
+            font-size: 11px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            opacity: 0.45;
+            padding: 4px 2px 0;
+        }
+        .grid-section-label + .grid-section-label { padding-top: 14px; }
+        .grid-divider {
+            grid-column: 1 / -1;
+            height: 1px;
+            background: rgba(245, 230, 168, 0.12);
+            margin: 6px 0 2px;
+        }
+
         .player-button.playing {
             background: linear-gradient(135deg, #4a7c59 0%, #356b42 100%);
             animation: pulse 2s infinite;
@@ -523,7 +557,7 @@
 
     <div class="header">
         <h1 class="logo">🥍 Ravens Goal Soundboard</h1>
-        <p style="text-align:center; opacity:0.5; font-size:12px; margin:5px 0;">v4.5.8</p>
+        <p style="text-align:center; opacity:0.5; font-size:12px; margin:5px 0;">v4.5.9</p>
         <p style="text-align:center; opacity:0.8; margin-bottom:20px;">Ravenscroft Lacrosse Goal Music</p>
     </div>
 
@@ -722,6 +756,14 @@
         let currentPulseTimeout = null;
         let offlineDB = null;
         let offlineReady = false;
+
+        // Favourites — persisted in localStorage as a JSON array of player numbers
+        let favorites = new Set(
+            JSON.parse(localStorage.getItem('ravens_favorites') || '[]')
+        );
+        function saveFavorites() {
+            localStorage.setItem('ravens_favorites', JSON.stringify([...favorites]));
+        }
 
         // ==================== GITHUB HELPERS ====================
         function getToken() {
@@ -1136,26 +1178,71 @@
         function generatePlayerGrid() {
             const grid = document.getElementById('playerGrid');
             grid.innerHTML = '';
-            const visible = players
+
+            const sorted = players
                 .filter(p => p.name || p.jerseyNumber !== '' || p.audioFile)
                 .sort((a, b) => {
                     const na = a.jerseyNumber !== '' ? parseInt(a.jerseyNumber) : 999;
                     const nb = b.jerseyNumber !== '' ? parseInt(b.jerseyNumber) : 999;
                     return na - nb;
                 });
-            visible.forEach(player => {
-                const btn = document.createElement('button');
+
+            const favs    = sorted.filter(p => favorites.has(p.number));
+            const nonFavs = sorted.filter(p => !favorites.has(p.number));
+
+            function makeBtn(player) {
+                const isFav     = favorites.has(player.number);
                 const isHornOnly = !player.audioFile;
-                btn.className = 'player-button' + (isHornOnly ? ' horn-only' : ' has-audio');
+                const btn = document.createElement('button');
+                btn.className = 'player-button'
+                    + (isHornOnly ? ' horn-only' : ' has-audio')
+                    + (isFav ? ' is-fav' : '');
                 btn.id = 'player_' + player.number;
                 btn.onclick = () => isHornOnly ? playHornOnly(player.number) : playGoalSong(player.number);
-                btn.innerHTML = '<div class="player-number">' + esc(String(player.jerseyNumber)) + '</div>'
+                btn.innerHTML = '<span class="fav-star" title="' + (isFav ? 'Remove from favourites' : 'Add to favourites') + '">&#9733;</span>'
+                              + '<div class="player-number">' + esc(String(player.jerseyNumber)) + '</div>'
                               + '<div class="player-name">' + esc(player.name) + '</div>'
                               + (isHornOnly ? '<div class="horn-only-label">🎺 Horn only</div>' : '');
-                grid.appendChild(btn);
-            });
+                // Star toggles favourite without triggering play
+                btn.querySelector('.fav-star').addEventListener('click', e => {
+                    e.stopPropagation();
+                    toggleFavorite(player.number);
+                });
+                return btn;
+            }
+
+            if (favs.length > 0) {
+                const lbl = document.createElement('div');
+                lbl.className = 'grid-section-label';
+                lbl.textContent = '⭐ Favourites';
+                grid.appendChild(lbl);
+                favs.forEach(p => grid.appendChild(makeBtn(p)));
+            }
+
+            if (favs.length > 0 && nonFavs.length > 0) {
+                const div = document.createElement('div');
+                div.className = 'grid-divider';
+                grid.appendChild(div);
+                const lbl2 = document.createElement('div');
+                lbl2.className = 'grid-section-label';
+                lbl2.textContent = 'All Players';
+                grid.appendChild(lbl2);
+            }
+
+            nonFavs.forEach(p => grid.appendChild(makeBtn(p)));
+
             // Async — stamps green/red borders once IndexedDB is checked
             refreshCacheBadges();
+        }
+
+        function toggleFavorite(playerNumber) {
+            if (favorites.has(playerNumber)) {
+                favorites.delete(playerNumber);
+            } else {
+                favorites.add(playerNumber);
+            }
+            saveFavorites();
+            generatePlayerGrid();
         }
 
         async function refreshCacheBadges() {
@@ -1719,7 +1806,7 @@
             }
         }
 
-        console.log('🎵 Ravens Goal Soundboard v4.5.8 — Offline via IndexedDB (iOS Chrome compatible)');
+        console.log('🎵 Ravens Goal Soundboard v4.5.9 — Offline via IndexedDB (iOS Chrome compatible)');
     </script>
 </body>
 </html>
