@@ -1316,23 +1316,44 @@
         }
 
         // ==================== SERVICE WORKER ====================
+        let serviceWorkerReady = false;
+        
         if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/service-worker.js')
-                    .then(registration => {
-                        console.log('✅ Service Worker registered:', registration.scope);
-                        updateCacheStatus();
-                    })
-                    .catch(error => {
-                        console.error('❌ Service Worker registration failed:', error);
-                    });
+            window.addEventListener('load', async () => {
+                try {
+                    const registration = await navigator.serviceWorker.register('./service-worker.js');
+                    console.log('✅ Service Worker registered:', registration.scope);
+                    
+                    // Wait for service worker to be ready
+                    await navigator.serviceWorker.ready;
+                    serviceWorkerReady = true;
+                    console.log('✅ Service Worker ready');
+                    
+                    // Update cache status after a short delay to ensure controller is set
+                    setTimeout(updateCacheStatus, 500);
+                } catch (error) {
+                    console.error('❌ Service Worker registration failed:', error);
+                    document.getElementById('cacheStatus').textContent = '❌ Offline mode unavailable';
+                }
             });
+            
+            // Listen for controller change (when service worker activates)
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                console.log('✅ Service Worker controller changed');
+                serviceWorkerReady = true;
+                setTimeout(updateCacheStatus, 500);
+            });
+        } else {
+            document.getElementById('cacheStatus').textContent = '❌ Browser does not support offline mode';
         }
 
         // ==================== CACHE MANAGEMENT ====================
         async function updateCacheStatus() {
+            const statusEl = document.getElementById('cacheStatus');
+            if (!statusEl) return;
+            
             if (!navigator.serviceWorker.controller) {
-                document.getElementById('cacheStatus').textContent = '⚠️ Service worker not active yet. Refresh page.';
+                statusEl.textContent = '⏳ Activating offline mode...';
                 return;
             }
 
@@ -1357,8 +1378,22 @@
         }
 
         async function cacheAllAudio() {
+            // Wait for service worker to be ready
+            if (!serviceWorkerReady || !navigator.serviceWorker.controller) {
+                // Try to wait for it
+                try {
+                    await navigator.serviceWorker.ready;
+                    serviceWorkerReady = true;
+                    // Give it a moment to set controller
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                } catch (error) {
+                    alert('Service worker not ready. Please wait a few seconds and try again.\n\nIf this persists, try:\n1. Close all tabs with this app\n2. Reopen the app\n3. Wait 5 seconds\n4. Try again');
+                    return;
+                }
+            }
+
             if (!navigator.serviceWorker.controller) {
-                alert('Service worker not ready. Please refresh the page and try again.');
+                alert('Service worker still initializing. Please wait 5 seconds and try again.');
                 return;
             }
 
