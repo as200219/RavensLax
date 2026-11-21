@@ -254,6 +254,30 @@
         }
 
         /* Sync status bar */
+        .stop-all-btn {
+            position: fixed;
+            left: 50%;
+            bottom: calc(16px + env(safe-area-inset-bottom));
+            transform: translateX(-50%) translateY(150%);
+            z-index: 900;
+            padding: 16px 36px;
+            font-size: 20px;
+            font-weight: bold;
+            color: #fff;
+            background: #c0392b;
+            border: 2px solid #f5e6a8;
+            border-radius: 40px;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.5);
+            opacity: 0;
+            pointer-events: none;
+            transition: transform 0.2s ease, opacity 0.2s ease;
+        }
+        .stop-all-btn.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+            pointer-events: auto;
+        }
+
         .sync-bar {
             background: rgba(45, 90, 54, 0.2);
             border: 1px solid rgba(245, 230, 168, 0.2);
@@ -599,7 +623,7 @@
 
     <div class="header">
         <h1 class="logo">🥍 Ravens Goal Soundboard</h1>
-        <p style="text-align:center; opacity:0.5; font-size:12px; margin:5px 0;">v4.6.0</p>
+        <p style="text-align:center; opacity:0.5; font-size:12px; margin:5px 0;">v4.7.0</p>
         <p style="text-align:center; opacity:0.8; margin-bottom:20px;">Ravenscroft Lacrosse Goal Music</p>
     </div>
 
@@ -628,6 +652,7 @@
             </div>
 
             <div class="soundboard-grid" id="playerGrid"></div>
+            <button id="stopAllBtn" class="stop-all-btn" onclick="fadeOutAndStop()">⏹ Stop Music</button>
             <div class="sync-bar">
                 <span id="syncStatus">🔄 Loading from GitHub...</span>
                 <button class="btn btn-primary" onclick="manualSync()">🔄 Refresh</button>
@@ -867,6 +892,9 @@
         // ==================== INIT ====================
         document.addEventListener('DOMContentLoaded', async function() {
             setupPWA();
+            registerServiceWorker();
+            setupWakeLock();
+            setInterval(updateStopButton, 250);
             await initOfflineDB();
             const validTabs = ['soundboard', 'upload', 'settings', 'roster'];
             const hashTab = window.location.hash.replace('#', '');
@@ -879,8 +907,26 @@
         });
 
         // ==================== LOAD FROM GITHUB ====================
+        const SETTINGS_CACHE_KEY = 'ravens_settings_cache';
+        const FILES_CACHE_KEY    = 'ravens_files_cache';
+
+        // Load last-known roster + song list saved on this device (used when offline)
+        function loadCachedSettings() {
+            try {
+                const cachedSettings = localStorage.getItem(SETTINGS_CACHE_KEY);
+                if (cachedSettings) applySettings(JSON.parse(cachedSettings));
+                const cachedFiles = localStorage.getItem(FILES_CACHE_KEY);
+                if (cachedFiles) availableFiles = JSON.parse(cachedFiles);
+                return !!cachedSettings;
+            } catch (e) {
+                console.warn('Cached settings unreadable:', e);
+                return false;
+            }
+        }
+
         async function loadFromGitHub() {
             setSyncStatus('🔄 Loading from GitHub...');
+            const hasCache = loadCachedSettings();
             try {
                 // 1. Try to load soundboard-settings.json
                 const settingsResp = await fetch(AUDIO_API_BASE + '/' + SETTINGS_FILE, {
@@ -894,6 +940,7 @@
                     const json = decodeGitHubContent(settingsFile.content);
                     const settings = JSON.parse(json);
                     applySettings(settings);
+                    try { localStorage.setItem(SETTINGS_CACHE_KEY, json); } catch (e) { /* storage full */ }
                     console.log('Settings loaded from GitHub, version:', settings.version);
                 } else if (settingsResp.status === 404) {
                     console.log('No settings file yet — will create on first save');
@@ -916,6 +963,7 @@
                         .map(f => f.name)
                         .sort((a, b) => a.localeCompare(b));
                     console.log('Audio files in repo:', availableFiles);
+                    try { localStorage.setItem(FILES_CACHE_KEY, JSON.stringify(availableFiles)); } catch (e) { /* storage full */ }
                 } else {
                     console.warn('Could not read audio files list:', filesResp.status);
                 }
@@ -925,7 +973,9 @@
                 document.getElementById('lastSyncTime').textContent = 'Last synced: ' + now;
 
             } catch (error) {
-                setSyncStatus('❌ Could not reach GitHub — check your internet connection');
+                setSyncStatus(hasCache
+                    ? '📴 Offline — using roster saved on this device'
+                    : '❌ Could not reach GitHub — check your internet connection');
                 console.error('loadFromGitHub error:', error);
             }
         }
@@ -1666,6 +1716,76 @@
             });
         }
 
+        function registerServiceWorker() {
+            if (!('serviceWorker' in navigator)) return;
+            // Relative path so it works at a sub-folder URL like /RavensLax/
+            navigator.serviceWorker.register('./service-worker.js')
+                .then(reg => console.log('Service worker registered, scope:', reg.scope))
+                .catch(err => console.warn('Service worker registration failed:', err));
+        }
+
+        // ==================== GAME-DAY: WAKE LOCK ====================
+        let wakeLock = null;
+
+        async function requestWakeLock() {
+            if (!('wakeLock' in navigator) || wakeLock) return;
+            try {
+                wakeLock = await navigator.wakeLock.request('screen');
+                wakeLock.addEventListener('release', () => { wakeLock = null; });
+                console.log('Screen wake lock on');
+            } catch (e) {
+                console.warn('Wake lock request failed:', e);
+            }
+        }
+
+        function setupWakeLock() {
+            if (!('wakeLock' in navigator)) return;
+            // Browsers require a user tap first; re-acquire after switching apps
+            document.addEventListener('pointerdown', requestWakeLock, { passive: true });
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'visible') requestWakeLock();
+            });
+        }
+
+        // ==================== GAME-DAY: STOP / FADE OUT ====================
+        // iOS ignores audio.volume, so test once whether fading is possible
+        const CAN_FADE = (() => {
+            try { const a = new Audio(); a.volume = 0.5; return a.volume === 0.5; }
+            catch (e) { return false; }
+        })();
+        let fadeOutTimer = null;
+
+        function updateStopButton() {
+            const btn = document.getElementById('stopAllBtn');
+            if (!btn) return;
+            btn.classList.toggle('show', currentPlayingPlayer !== null);
+        }
+
+        function fadeOutAndStop() {
+            if (fadeOutTimer) return;
+            const targets = [currentAudio, currentHornAudio].filter(Boolean);
+            if (!CAN_FADE || targets.length === 0) {
+                stopCurrentAudio();
+                updateStopButton();
+                return;
+            }
+            const fadeMs = 1500;
+            const steps  = 15;
+            const startVols = targets.map(a => a.volume);
+            let step = 0;
+            fadeOutTimer = setInterval(() => {
+                step++;
+                targets.forEach((a, i) => { a.volume = Math.max(0, startVols[i] * (1 - step / steps)); });
+                if (step >= steps) {
+                    clearInterval(fadeOutTimer);
+                    fadeOutTimer = null;
+                    stopCurrentAudio();
+                    targets.forEach(a => { a.volume = 1; });
+                    updateStopButton();
+                }
+            }, fadeMs / steps);
+        }
+
         function promptInstall() {
             if (deferredPrompt) {
                 deferredPrompt.prompt().then(() => { deferredPrompt = null; });
@@ -1919,7 +2039,7 @@
             }
         }
 
-        console.log('🎵 Ravens Goal Soundboard v4.6.0 — Offline via IndexedDB (iOS Chrome compatible)');
+        console.log('🎵 Ravens Goal Soundboard v4.7.0 — Offline via IndexedDB (iOS Chrome compatible)');
     </script>
 </body>
 </html>
