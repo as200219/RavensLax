@@ -278,6 +278,34 @@
         }
 
         /* Sync status bar */
+        .add-player-btn { width: 100%; padding: 14px; font-size: 17px; margin: 4px 0 16px; }
+        .song-library {
+            margin-top: 24px;
+            background: rgba(0,0,0,0.2);
+            border: 1px solid rgba(245,230,168,0.2);
+            border-radius: 12px;
+            padding: 12px;
+        }
+        .song-library summary { cursor: pointer; font-weight: bold; padding: 4px 0; }
+        .lib-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 0;
+            border-top: 1px solid rgba(245,230,168,0.1);
+        }
+        .lib-name { flex: 1; min-width: 0; font-size: 13px; overflow-wrap: anywhere; }
+        .lib-tag {
+            display: inline-block;
+            font-size: 11px;
+            padding: 1px 7px;
+            border-radius: 8px;
+            background: rgba(245,230,168,0.15);
+            margin-left: 4px;
+        }
+        .lib-tag.lib-unused { background: rgba(255,120,0,0.25); }
+        .btn.lib-del { width: auto; flex: 0 0 auto; padding: 8px 12px; }
+
         .stop-all-btn {
             position: fixed;
             left: 50%;
@@ -655,7 +683,7 @@
 
     <div class="header">
         <h1 class="logo">🥍 Ravens Goal Soundboard</h1>
-        <p style="text-align:center; opacity:0.5; font-size:12px; margin:5px 0;">v4.8.0</p>
+        <p style="text-align:center; opacity:0.5; font-size:12px; margin:5px 0;">v4.9.0</p>
         <p style="text-align:center; opacity:0.8; margin-bottom:20px;">Ravenscroft Lacrosse Goal Music</p>
     </div>
 
@@ -701,7 +729,14 @@
                     <button class="btn btn-primary" onclick="saveToGitHub()">💾 Save All to GitHub</button>
                 </div>
 
+                <button class="btn btn-primary add-player-btn" onclick="addPlayer()">➕ Add Player</button>
+
                 <div class="upload-grid" id="uploadGrid"></div>
+
+                <details class="song-library">
+                    <summary>📚 Song Library — delete songs you no longer use</summary>
+                    <div id="songLibrary"></div>
+                </details>
             </div>
         </div>
 
@@ -851,16 +886,23 @@
         const NATIONAL_ANTHEM_FILE = 'National Anthem - Star Spangled Banner - U.S.A. - H.D. (SPOTISAVER).mp3';
 
         // ==================== STATE ====================
-        // players[0] = player number 1, players[29] = player number 30
-        let players = Array.from({length: 30}, (_, i) => ({
-            number: i + 1,
-            name: '',
-            jerseyNumber: '',
-            audioFile: '',   // filename in audio-files folder, e.g. "Free Bird.mp3"
-            startTime: 0,
-            endTime: 30
-        }));
+        // Roster has no size limit. player.number is a permanent ID (not the jersey #);
+        // favourites and buttons are keyed by it, so it never changes once assigned.
+        let players = [];
         let availableFiles = [];  // filenames in GitHub audio-files folder
+        let fileShas = {};        // filename -> GitHub SHA (needed to delete a song)
+
+        function getPlayer(number) {
+            return players.find(p => p.number === number) || null;
+        }
+
+        function nextPlayerNumber() {
+            return players.reduce((max, p) => Math.max(max, p.number), 0) + 1;
+        }
+
+        function makePlayer(number) {
+            return { number, name: '', jerseyNumber: '', audioFile: '', startTime: 0, endTime: 30 };
+        }
         let settingsSha    = null; // SHA of settings.json in GitHub (needed to update it)
         let currentClipPlayer = null;
         let deferredPrompt;
@@ -990,6 +1032,8 @@
 
                 if (filesResp.ok) {
                     const files = await filesResp.json();
+                    fileShas = {};
+                    files.forEach(f => { if (f.type === 'file') fileShas[f.name] = f.sha; });
                     availableFiles = files
                         .filter(f => f.type === 'file'
                                   && f.name !== SETTINGS_FILE
@@ -1021,16 +1065,17 @@
                 favorites = new Set(settings.favorites);
                 saveFavorites(); // keep localStorage in sync as a fast local cache
             }
-            settings.players.forEach(sp => {
-                const idx = sp.number - 1;
-                if (idx >= 0 && idx < 30) {
-                    players[idx].name        = sp.name        || '';
-                    players[idx].jerseyNumber= sp.jerseyNumber|| '';
-                    players[idx].audioFile   = sp.audioFile   || '';
-                    players[idx].startTime   = (sp.startTime  != null) ? sp.startTime  : 0;
-                    players[idx].endTime     = (sp.endTime    != null) ? sp.endTime    : 30;
-                }
-            });
+            const seen = new Set();
+            players = settings.players
+                .filter(sp => Number.isFinite(Number(sp.number)) && !seen.has(Number(sp.number)) && seen.add(Number(sp.number)))
+                .map(sp => ({
+                    number:       Number(sp.number),
+                    name:         sp.name         || '',
+                    jerseyNumber: (sp.jerseyNumber != null) ? String(sp.jerseyNumber) : '',
+                    audioFile:    sp.audioFile    || '',
+                    startTime:    (sp.startTime != null) ? sp.startTime : 0,
+                    endTime:      (sp.endTime   != null) ? sp.endTime   : 30
+                }));
         }
 
         // ==================== SAVE TO GITHUB ====================
@@ -1157,7 +1202,7 @@
                 }
 
                 // Assign to player
-                const player = players[playerNumber - 1];
+                const player = getPlayer(playerNumber);
                 if (player) player.audioFile = file.name;
 
                 // Save settings to GitHub
@@ -1201,7 +1246,7 @@
 
         // ==================== SONG ASSIGNMENT ====================
         async function assignSong(playerNumber, filename) {
-            const player = players[playerNumber - 1];
+            const player = getPlayer(playerNumber);
             if (!player) return;
             player.audioFile = filename;
             generatePlayerGrid();
@@ -1212,7 +1257,8 @@
 
         async function clearPlayerSong(playerNumber) {
             if (!confirm('Remove song assignment for Player #' + playerNumber + '?')) return;
-            players[playerNumber - 1].audioFile = '';
+            const player = getPlayer(playerNumber);
+            if (player) player.audioFile = '';
             generatePlayerGrid();
             generateManageGrid();
             renderRoster();
@@ -1235,7 +1281,7 @@
         }
 
         async function playGoalSong(playerNumber) {
-            const player = players[playerNumber - 1];
+            const player = getPlayer(playerNumber);
             if (!player || !player.audioFile) return;
 
             // Toggle off if this player is already playing
@@ -1501,13 +1547,15 @@
         function generateManageGrid() {
             const grid = document.getElementById('uploadGrid');
             grid.innerHTML = '';
+            renderSongLibrary();
 
+            // Every player shows here (including brand-new blank ones, listed last)
             const sorted = players
-                .filter(p => p.name || p.jerseyNumber !== '' || p.audioFile)
+                .slice()
                 .sort((a, b) => {
                     const na = a.jerseyNumber !== '' ? parseInt(a.jerseyNumber) : 999;
                     const nb = b.jerseyNumber !== '' ? parseInt(b.jerseyNumber) : 999;
-                    return na - nb;
+                    return na - nb || a.number - b.number;
                 });
 
             sorted.forEach(player => {
@@ -1527,9 +1575,11 @@
                     // Name & jersey
                     '<div class="player-info">',
                         '<input type="text" placeholder="Player Name" value="' + escAttr(player.name) + '"',
-                        '       oninput="players[' + (player.number-1) + '].name=this.value; generatePlayerGrid(); renderRoster();">',
-                        '<input type="number" placeholder="Jersey #" value="' + escAttr(player.jerseyNumber) + '"',
-                        '       oninput="players[' + (player.number-1) + '].jerseyNumber=this.value; renderRoster();">',
+                        '       oninput="getPlayer(' + player.number + ').name=this.value; generatePlayerGrid(); renderRoster();"',
+                        '       onchange="scheduleSave()">',
+                        '<input type="number" inputmode="numeric" placeholder="Jersey #" value="' + escAttr(player.jerseyNumber) + '"',
+                        '       oninput="getPlayer(' + player.number + ').jerseyNumber=this.value; generatePlayerGrid(); renderRoster();"',
+                        '       onchange="scheduleSave()">',
                     '</div>',
 
                     // Song selector
@@ -1559,11 +1609,125 @@
                         '</div>'
                     ].join('') : '',
 
+                    '<button class="btn btn-danger" style="width:100%;margin-top:6px;opacity:0.85;" onclick="deletePlayer(' + player.number + ')">❌ Delete Player</button>',
+
                     '</div>' // upload-controls
                 ].join('');
 
                 grid.appendChild(row);
             });
+        }
+
+        // ==================== ROSTER EDITING ====================
+        let saveTimer = null;
+        // Save shortly after an edit is finished (onchange fires when a field loses focus)
+        function scheduleSave() {
+            clearTimeout(saveTimer);
+            saveTimer = setTimeout(() => saveToGitHub(), 800);
+        }
+
+        function addPlayer() {
+            const player = makePlayer(nextPlayerNumber());
+            players.push(player);
+            generateManageGrid();
+            const row = document.getElementById('file_' + player.number);
+            if (row) {
+                row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                const nameInput = row.querySelector('input[type=text]');
+                if (nameInput) setTimeout(() => nameInput.focus(), 300);
+            }
+        }
+
+        async function deletePlayer(playerNumber) {
+            const player = getPlayer(playerNumber);
+            if (!player) return;
+            const label = (player.jerseyNumber !== '' ? '#' + player.jerseyNumber + ' ' : '') + (player.name || 'this player');
+            if (!confirm('Delete ' + label + ' from the roster?\n\nThe song file stays in the Song Library.')) return;
+            if (currentPlayingPlayer === playerNumber) stopCurrentAudio();
+            players = players.filter(p => p.number !== playerNumber);
+            if (favorites.delete(playerNumber)) saveFavorites();
+            generatePlayerGrid();
+            generateManageGrid();
+            renderRoster();
+            await saveToGitHub();
+        }
+
+        // ==================== SONG LIBRARY ====================
+        function renderSongLibrary() {
+            const el = document.getElementById('songLibrary');
+            if (!el) return;
+            if (!availableFiles.length) {
+                el.innerHTML = '<div style="opacity:0.6;font-size:13px;text-align:center;padding:10px;">No songs found. Tap Sync in Settings.</div>';
+                return;
+            }
+            el.innerHTML = availableFiles.map(f => {
+                const users = players.filter(p => p.audioFile === f);
+                const isSystem = f === GOAL_HORN_FILE || f === NATIONAL_ANTHEM_FILE;
+                const tag = isSystem
+                    ? '<span class="lib-tag">' + (f === GOAL_HORN_FILE ? 'Goal horn' : 'Anthem') + '</span>'
+                    : (users.length
+                        ? '<span class="lib-tag">' + users.length + ' player' + (users.length > 1 ? 's' : '') + '</span>'
+                        : '<span class="lib-tag lib-unused">unused</span>');
+                return '<div class="lib-row">'
+                     + '<div class="lib-name">' + esc(f) + ' ' + tag + '</div>'
+                     + (isSystem ? ''
+                        : '<button class="btn btn-danger lib-del" data-file="' + escAttr(f) + '" onclick="deleteSong(this.dataset.file)">🗑️</button>')
+                     + '</div>';
+            }).join('');
+        }
+
+        async function deleteSong(filename) {
+            if (!filename) return;
+            if (filename === GOAL_HORN_FILE || filename === NATIONAL_ANTHEM_FILE) {
+                alert('The goal horn and anthem can\'t be deleted.');
+                return;
+            }
+            const users = players.filter(p => p.audioFile === filename);
+            let msg = 'Permanently delete "' + filename + '" from GitHub?';
+            if (users.length) {
+                msg += '\n\nThese players will lose their song (they\'ll play the horn only):\n• '
+                     + users.map(p => (p.jerseyNumber ? '#' + p.jerseyNumber + ' ' : '') + (p.name || 'Unnamed')).join('\n• ');
+            }
+            if (!confirm(msg)) return;
+
+            showUploadOverlay('Deleting ' + filename + '...', 30);
+            try {
+                let sha = fileShas[filename];
+                if (!sha) {
+                    const r = await fetch(AUDIO_API_BASE + '/' + encodeURIComponent(filename), { headers: apiHeaders(), cache: 'no-store' });
+                    if (r.ok) sha = (await r.json()).sha;
+                }
+                if (!sha) throw new Error('Could not find the file on GitHub (try Sync first)');
+
+                const resp = await fetch(AUDIO_API_BASE + '/' + encodeURIComponent(filename), {
+                    method: 'DELETE',
+                    headers: { ...apiHeaders(), 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: 'Delete audio: ' + filename, sha: sha, branch: REPO_BRANCH })
+                });
+                if (!resp.ok) {
+                    const err = await resp.json().catch(() => ({}));
+                    throw new Error(err.message || ('HTTP ' + resp.status));
+                }
+
+                availableFiles = availableFiles.filter(f => f !== filename);
+                delete fileShas[filename];
+                try { localStorage.setItem(FILES_CACHE_KEY, JSON.stringify(availableFiles)); } catch (e) { /* ignore */ }
+                await removeFromOfflineDB(filename);
+
+                showUploadOverlay('Updating players...', 70);
+                users.forEach(p => { p.audioFile = ''; });
+                if (users.length) await saveToGitHub();
+
+                hideUploadOverlay();
+                generatePlayerGrid();
+                generateManageGrid();
+                renderRoster();
+                updateOfflineStatus();
+                setSyncStatus('✅ Deleted ' + filename);
+            } catch (error) {
+                hideUploadOverlay();
+                alert('Delete failed: ' + error.message);
+            }
         }
 
         // HTML escaping helpers
@@ -1572,7 +1736,7 @@
 
         // ==================== CLIP EDITOR ====================
         function openClipEditor(playerNumber) {
-            const player = players[playerNumber - 1];
+            const player = getPlayer(playerNumber);
             if (!player || !player.audioFile) {
                 alert('Assign a song to this player first, then open the clip editor.');
                 return;
@@ -1580,7 +1744,7 @@
             currentClipPlayer = player;
 
             const audio = document.getElementById('clipEditorAudio');
-            audio.src = getAudioUrl(player.audioFile);
+            getAudioUrl(player.audioFile).then(url => { audio.src = url; });
 
             document.getElementById('startTime').value = player.startTime || 0;
             document.getElementById('endTime').value   = player.endTime   || 30;
@@ -1895,6 +2059,15 @@
             });
         }
         
+        async function removeFromOfflineDB(filename) {
+            if (!offlineDB) return false;
+            return new Promise((resolve) => {
+                const request = offlineDB.transaction(['audioFiles'], 'readwrite').objectStore('audioFiles').delete(filename);
+                request.onsuccess = () => resolve(true);
+                request.onerror = () => resolve(false);
+            });
+        }
+
         async function getAllCachedFiles() {
             if (!offlineDB) return [];
             return new Promise((resolve) => {
@@ -2083,7 +2256,7 @@
             }
         }
 
-        console.log('🎵 Ravens Goal Soundboard v4.8.0 — Offline via IndexedDB (iOS Chrome compatible)');
+        console.log('🎵 Ravens Goal Soundboard v4.9.0 — Offline via IndexedDB (iOS Chrome compatible)');
     </script>
 </body>
 </html>
