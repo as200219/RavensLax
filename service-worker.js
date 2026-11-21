@@ -1,13 +1,17 @@
-// Ravens Goal Soundboard - Service Worker v4.7
+// Ravens Goal Soundboard - Service Worker v4.8
 // Caches the app page so it opens with no signal.
 // Songs are stored separately in IndexedDB by index.html ("Download All Songs").
 
-const CACHE_NAME = 'ravens-shell-v2';
+const CACHE_NAME = 'ravens-shell-v3';
 
 // Relative paths so this works at a sub-folder URL like /RavensLax/
 const APP_SHELL = [
     './',
-    './index.html'
+    './index.html',
+    './manifest.json',
+    './icons/apple-touch-icon.png',
+    './icons/icon-192.png',
+    './icons/icon-512.png'
 ];
 
 self.addEventListener('install', event => {
@@ -37,8 +41,16 @@ self.addEventListener('fetch', event => {
 
     const url = new URL(req.url);
     const isSameOrigin = url.origin === self.location.origin;
+    if (!isSameOrigin) return;
     const isPage = req.mode === 'navigate' || url.pathname.endsWith('.html');
-    if (!isSameOrigin || !isPage) return;
+    const isShellAsset = /\/(manifest\.json|icons\/[^/]+\.png)$/.test(url.pathname);
+
+    // Icons + manifest: cache-first (they rarely change)
+    if (isShellAsset) {
+        event.respondWith(caches.match(req).then(c => c || fetch(req)));
+        return;
+    }
+    if (!isPage) return;
 
     event.respondWith(
         fetch(req)

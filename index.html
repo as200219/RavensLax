@@ -2,21 +2,45 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Ravens Soundboard">
     <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#163e21">
+    <meta name="format-detection" content="telephone=no">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
     <title>Ravens Goal Soundboard</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        /* iPhone: no grey tap flash, no long-press menus or text selection on controls */
+        html { -webkit-text-size-adjust: 100%; background: #1a2e1a; }
+        button, .tab, .player-button {
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+            touch-action: manipulation; /* removes double-tap zoom delay */
+        }
+        /* 16px inputs stop iOS from auto-zooming when a field is tapped */
+        input, select, textarea { font-size: 16px; }
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: linear-gradient(135deg, #1a2e1a, #163e21, #0f4d1a);
             color: #f5e6a8;
             min-height: 100vh;
+            min-height: 100dvh;
             padding: 20px;
+            /* Keep content clear of the notch / Dynamic Island and home bar */
+            padding-top: calc(20px + env(safe-area-inset-top));
+            padding-left: calc(20px + env(safe-area-inset-left));
+            padding-right: calc(20px + env(safe-area-inset-right));
+            padding-bottom: calc(90px + env(safe-area-inset-bottom)); /* room for Stop button */
+            overscroll-behavior-y: none;
         }
 
         .header { text-align: center; margin-bottom: 30px; }
@@ -607,6 +631,10 @@
             .tabs { gap: 3px; }
             .tab { flex: 0 0 calc(50% - 2px); padding: 8px 6px; font-size: 12px; }
             .sync-bar { flex-direction: column; align-items: flex-start; }
+            /* Stack Anthem + Download on phones so nothing runs off the screen */
+            .sb-top-bar { flex-direction: column; align-items: stretch; }
+            .sb-anthem-btn { min-width: 0; padding: 14px; font-size: 17px; }
+            .sb-offline-mini { width: 100%; min-width: 0; }
         }
 
         @media (max-width: 480px) {
@@ -614,7 +642,11 @@
             .player-button { font-size: 14px; padding: 6px; }
             .player-button .player-number { font-size: 18px; }
             .player-button .player-name { font-size: 10px; }
+            .logo { font-size: 1.6em; }
+            .header p { margin-bottom: 10px !important; }
         }
+        /* Home-screen app: drop the version line to save vertical space */
+        html.standalone .header p:first-of-type { display: none; }
     </style>
 </head>
 <body>
@@ -623,7 +655,7 @@
 
     <div class="header">
         <h1 class="logo">🥍 Ravens Goal Soundboard</h1>
-        <p style="text-align:center; opacity:0.5; font-size:12px; margin:5px 0;">v4.7.0</p>
+        <p style="text-align:center; opacity:0.5; font-size:12px; margin:5px 0;">v4.8.0</p>
         <p style="text-align:center; opacity:0.8; margin-bottom:20px;">Ravenscroft Lacrosse Goal Music</p>
     </div>
 
@@ -735,9 +767,11 @@
                         <button class="btn btn-primary" id="installBtn" onclick="promptInstall()" style="width:100%; display:none;">
                             Install App
                         </button>
-                        <p id="installInfo" style="opacity:0.6; font-size:12px; text-align:center;">
-                            Use your browser's "Add to Home Screen" option
-                        </p>
+                        <div id="installInfo" style="opacity:0.85; font-size:13px; line-height:1.5;">
+                            <b>iPhone:</b> open this page in <b>Safari</b> → tap the <b>Share</b> button (square with arrow) →
+                            <b>Add to Home Screen</b> → <b>Add</b>.<br>
+                            Then open the app from your home screen and tap <b>📥 Download All Songs</b> once while online.
+                        </div>
                     </div>
 
                 </div>
@@ -1700,7 +1734,17 @@
         }
 
         // ==================== PWA ====================
+        function isStandalone() {
+            return window.navigator.standalone === true
+                || window.matchMedia('(display-mode: standalone)').matches;
+        }
+
         function setupPWA() {
+            if (isStandalone()) {
+                document.documentElement.classList.add('standalone');
+                const info = document.getElementById('installInfo');
+                if (info) info.innerHTML = '✅ Running as a home-screen app. Tap <b>📥 Download All Songs</b> once while online for offline play.';
+            }
             window.addEventListener('beforeinstallprompt', e => {
                 e.preventDefault();
                 deferredPrompt = e;
@@ -2039,7 +2083,7 @@
             }
         }
 
-        console.log('🎵 Ravens Goal Soundboard v4.7.0 — Offline via IndexedDB (iOS Chrome compatible)');
+        console.log('🎵 Ravens Goal Soundboard v4.8.0 — Offline via IndexedDB (iOS Chrome compatible)');
     </script>
 </body>
 </html>

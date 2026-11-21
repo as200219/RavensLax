@@ -1,0 +1,16 @@
+{
+  "name": "Ravens Goal Soundboard",
+  "short_name": "Ravens SB",
+  "description": "Ravenscroft Lacrosse goal music soundboard",
+  "start_url": "./index.html#soundboard",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#1a2e1a",
+  "theme_color": "#163e21",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
