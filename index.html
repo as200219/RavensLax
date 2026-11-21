@@ -2,21 +2,45 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Ravens Soundboard">
     <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#163e21">
+    <meta name="format-detection" content="telephone=no">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
     <title>Ravens Goal Soundboard</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        /* iPhone: no grey tap flash, no long-press menus or text selection on controls */
+        html { -webkit-text-size-adjust: 100%; background: #1a2e1a; }
+        button, .tab, .player-button {
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+            touch-action: manipulation; /* removes double-tap zoom delay */
+        }
+        /* 16px inputs stop iOS from auto-zooming when a field is tapped */
+        input, select, textarea { font-size: 16px; }
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: linear-gradient(135deg, #1a2e1a, #163e21, #0f4d1a);
             color: #f5e6a8;
             min-height: 100vh;
+            min-height: 100dvh;
             padding: 20px;
+            /* Keep content clear of the notch / Dynamic Island and home bar */
+            padding-top: calc(20px + env(safe-area-inset-top));
+            padding-left: calc(20px + env(safe-area-inset-left));
+            padding-right: calc(20px + env(safe-area-inset-right));
+            padding-bottom: calc(90px + env(safe-area-inset-bottom)); /* room for Stop button */
+            overscroll-behavior-y: none;
         }
 
         .header { text-align: center; margin-bottom: 30px; }
@@ -254,6 +278,58 @@
         }
 
         /* Sync status bar */
+        .add-player-btn { width: 100%; padding: 14px; font-size: 17px; margin: 4px 0 16px; }
+        .song-library {
+            margin-top: 24px;
+            background: rgba(0,0,0,0.2);
+            border: 1px solid rgba(245,230,168,0.2);
+            border-radius: 12px;
+            padding: 12px;
+        }
+        .song-library summary { cursor: pointer; font-weight: bold; padding: 4px 0; }
+        .lib-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 0;
+            border-top: 1px solid rgba(245,230,168,0.1);
+        }
+        .lib-name { flex: 1; min-width: 0; font-size: 13px; overflow-wrap: anywhere; }
+        .lib-tag {
+            display: inline-block;
+            font-size: 11px;
+            padding: 1px 7px;
+            border-radius: 8px;
+            background: rgba(245,230,168,0.15);
+            margin-left: 4px;
+        }
+        .lib-tag.lib-unused { background: rgba(255,120,0,0.25); }
+        .btn.lib-del { width: auto; flex: 0 0 auto; padding: 8px 12px; }
+
+        .stop-all-btn {
+            position: fixed;
+            left: 50%;
+            bottom: calc(16px + env(safe-area-inset-bottom));
+            transform: translateX(-50%) translateY(150%);
+            z-index: 900;
+            padding: 16px 36px;
+            font-size: 20px;
+            font-weight: bold;
+            color: #fff;
+            background: #c0392b;
+            border: 2px solid #f5e6a8;
+            border-radius: 40px;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.5);
+            opacity: 0;
+            pointer-events: none;
+            transition: transform 0.2s ease, opacity 0.2s ease;
+        }
+        .stop-all-btn.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+            pointer-events: auto;
+        }
+
         .sync-bar {
             background: rgba(45, 90, 54, 0.2);
             border: 1px solid rgba(245, 230, 168, 0.2);
@@ -583,6 +659,10 @@
             .tabs { gap: 3px; }
             .tab { flex: 0 0 calc(50% - 2px); padding: 8px 6px; font-size: 12px; }
             .sync-bar { flex-direction: column; align-items: flex-start; }
+            /* Stack Anthem + Download on phones so nothing runs off the screen */
+            .sb-top-bar { flex-direction: column; align-items: stretch; }
+            .sb-anthem-btn { min-width: 0; padding: 14px; font-size: 17px; }
+            .sb-offline-mini { width: 100%; min-width: 0; }
         }
 
         @media (max-width: 480px) {
@@ -590,7 +670,11 @@
             .player-button { font-size: 14px; padding: 6px; }
             .player-button .player-number { font-size: 18px; }
             .player-button .player-name { font-size: 10px; }
+            .logo { font-size: 1.6em; }
+            .header p { margin-bottom: 10px !important; }
         }
+        /* Home-screen app: drop the version line to save vertical space */
+        html.standalone .header p:first-of-type { display: none; }
     </style>
 </head>
 <body>
@@ -599,7 +683,7 @@
 
     <div class="header">
         <h1 class="logo">🥍 Ravens Goal Soundboard</h1>
-        <p style="text-align:center; opacity:0.5; font-size:12px; margin:5px 0;">v4.6.0</p>
+        <p style="text-align:center; opacity:0.5; font-size:12px; margin:5px 0;">v4.9.0</p>
         <p style="text-align:center; opacity:0.8; margin-bottom:20px;">Ravenscroft Lacrosse Goal Music</p>
     </div>
 
@@ -628,6 +712,7 @@
             </div>
 
             <div class="soundboard-grid" id="playerGrid"></div>
+            <button id="stopAllBtn" class="stop-all-btn" onclick="fadeOutAndStop()">⏹ Stop Music</button>
             <div class="sync-bar">
                 <span id="syncStatus">🔄 Loading from GitHub...</span>
                 <button class="btn btn-primary" onclick="manualSync()">🔄 Refresh</button>
@@ -644,7 +729,14 @@
                     <button class="btn btn-primary" onclick="saveToGitHub()">💾 Save All to GitHub</button>
                 </div>
 
+                <button class="btn btn-primary add-player-btn" onclick="addPlayer()">➕ Add Player</button>
+
                 <div class="upload-grid" id="uploadGrid"></div>
+
+                <details class="song-library">
+                    <summary>📚 Song Library — delete songs you no longer use</summary>
+                    <div id="songLibrary"></div>
+                </details>
             </div>
         </div>
 
@@ -710,9 +802,11 @@
                         <button class="btn btn-primary" id="installBtn" onclick="promptInstall()" style="width:100%; display:none;">
                             Install App
                         </button>
-                        <p id="installInfo" style="opacity:0.6; font-size:12px; text-align:center;">
-                            Use your browser's "Add to Home Screen" option
-                        </p>
+                        <div id="installInfo" style="opacity:0.85; font-size:13px; line-height:1.5;">
+                            <b>iPhone:</b> open this page in <b>Safari</b> → tap the <b>Share</b> button (square with arrow) →
+                            <b>Add to Home Screen</b> → <b>Add</b>.<br>
+                            Then open the app from your home screen and tap <b>📥 Download All Songs</b> once while online.
+                        </div>
                     </div>
 
                 </div>
@@ -792,16 +886,23 @@
         const NATIONAL_ANTHEM_FILE = 'National Anthem - Star Spangled Banner - U.S.A. - H.D. (SPOTISAVER).mp3';
 
         // ==================== STATE ====================
-        // players[0] = player number 1, players[29] = player number 30
-        let players = Array.from({length: 30}, (_, i) => ({
-            number: i + 1,
-            name: '',
-            jerseyNumber: '',
-            audioFile: '',   // filename in audio-files folder, e.g. "Free Bird.mp3"
-            startTime: 0,
-            endTime: 30
-        }));
+        // Roster has no size limit. player.number is a permanent ID (not the jersey #);
+        // favourites and buttons are keyed by it, so it never changes once assigned.
+        let players = [];
         let availableFiles = [];  // filenames in GitHub audio-files folder
+        let fileShas = {};        // filename -> GitHub SHA (needed to delete a song)
+
+        function getPlayer(number) {
+            return players.find(p => p.number === number) || null;
+        }
+
+        function nextPlayerNumber() {
+            return players.reduce((max, p) => Math.max(max, p.number), 0) + 1;
+        }
+
+        function makePlayer(number) {
+            return { number, name: '', jerseyNumber: '', audioFile: '', startTime: 0, endTime: 30 };
+        }
         let settingsSha    = null; // SHA of settings.json in GitHub (needed to update it)
         let currentClipPlayer = null;
         let deferredPrompt;
@@ -867,6 +968,9 @@
         // ==================== INIT ====================
         document.addEventListener('DOMContentLoaded', async function() {
             setupPWA();
+            registerServiceWorker();
+            setupWakeLock();
+            setInterval(updateStopButton, 250);
             await initOfflineDB();
             const validTabs = ['soundboard', 'upload', 'settings', 'roster'];
             const hashTab = window.location.hash.replace('#', '');
@@ -879,8 +983,26 @@
         });
 
         // ==================== LOAD FROM GITHUB ====================
+        const SETTINGS_CACHE_KEY = 'ravens_settings_cache';
+        const FILES_CACHE_KEY    = 'ravens_files_cache';
+
+        // Load last-known roster + song list saved on this device (used when offline)
+        function loadCachedSettings() {
+            try {
+                const cachedSettings = localStorage.getItem(SETTINGS_CACHE_KEY);
+                if (cachedSettings) applySettings(JSON.parse(cachedSettings));
+                const cachedFiles = localStorage.getItem(FILES_CACHE_KEY);
+                if (cachedFiles) availableFiles = JSON.parse(cachedFiles);
+                return !!cachedSettings;
+            } catch (e) {
+                console.warn('Cached settings unreadable:', e);
+                return false;
+            }
+        }
+
         async function loadFromGitHub() {
             setSyncStatus('🔄 Loading from GitHub...');
+            const hasCache = loadCachedSettings();
             try {
                 // 1. Try to load soundboard-settings.json
                 const settingsResp = await fetch(AUDIO_API_BASE + '/' + SETTINGS_FILE, {
@@ -894,6 +1016,7 @@
                     const json = decodeGitHubContent(settingsFile.content);
                     const settings = JSON.parse(json);
                     applySettings(settings);
+                    try { localStorage.setItem(SETTINGS_CACHE_KEY, json); } catch (e) { /* storage full */ }
                     console.log('Settings loaded from GitHub, version:', settings.version);
                 } else if (settingsResp.status === 404) {
                     console.log('No settings file yet — will create on first save');
@@ -909,6 +1032,8 @@
 
                 if (filesResp.ok) {
                     const files = await filesResp.json();
+                    fileShas = {};
+                    files.forEach(f => { if (f.type === 'file') fileShas[f.name] = f.sha; });
                     availableFiles = files
                         .filter(f => f.type === 'file'
                                   && f.name !== SETTINGS_FILE
@@ -916,6 +1041,7 @@
                         .map(f => f.name)
                         .sort((a, b) => a.localeCompare(b));
                     console.log('Audio files in repo:', availableFiles);
+                    try { localStorage.setItem(FILES_CACHE_KEY, JSON.stringify(availableFiles)); } catch (e) { /* storage full */ }
                 } else {
                     console.warn('Could not read audio files list:', filesResp.status);
                 }
@@ -925,7 +1051,9 @@
                 document.getElementById('lastSyncTime').textContent = 'Last synced: ' + now;
 
             } catch (error) {
-                setSyncStatus('❌ Could not reach GitHub — check your internet connection');
+                setSyncStatus(hasCache
+                    ? '📴 Offline — using roster saved on this device'
+                    : '❌ Could not reach GitHub — check your internet connection');
                 console.error('loadFromGitHub error:', error);
             }
         }
@@ -937,16 +1065,17 @@
                 favorites = new Set(settings.favorites);
                 saveFavorites(); // keep localStorage in sync as a fast local cache
             }
-            settings.players.forEach(sp => {
-                const idx = sp.number - 1;
-                if (idx >= 0 && idx < 30) {
-                    players[idx].name        = sp.name        || '';
-                    players[idx].jerseyNumber= sp.jerseyNumber|| '';
-                    players[idx].audioFile   = sp.audioFile   || '';
-                    players[idx].startTime   = (sp.startTime  != null) ? sp.startTime  : 0;
-                    players[idx].endTime     = (sp.endTime    != null) ? sp.endTime    : 30;
-                }
-            });
+            const seen = new Set();
+            players = settings.players
+                .filter(sp => Number.isFinite(Number(sp.number)) && !seen.has(Number(sp.number)) && seen.add(Number(sp.number)))
+                .map(sp => ({
+                    number:       Number(sp.number),
+                    name:         sp.name         || '',
+                    jerseyNumber: (sp.jerseyNumber != null) ? String(sp.jerseyNumber) : '',
+                    audioFile:    sp.audioFile    || '',
+                    startTime:    (sp.startTime != null) ? sp.startTime : 0,
+                    endTime:      (sp.endTime   != null) ? sp.endTime   : 30
+                }));
         }
 
         // ==================== SAVE TO GITHUB ====================
@@ -1073,7 +1202,7 @@
                 }
 
                 // Assign to player
-                const player = players[playerNumber - 1];
+                const player = getPlayer(playerNumber);
                 if (player) player.audioFile = file.name;
 
                 // Save settings to GitHub
@@ -1117,7 +1246,7 @@
 
         // ==================== SONG ASSIGNMENT ====================
         async function assignSong(playerNumber, filename) {
-            const player = players[playerNumber - 1];
+            const player = getPlayer(playerNumber);
             if (!player) return;
             player.audioFile = filename;
             generatePlayerGrid();
@@ -1128,7 +1257,8 @@
 
         async function clearPlayerSong(playerNumber) {
             if (!confirm('Remove song assignment for Player #' + playerNumber + '?')) return;
-            players[playerNumber - 1].audioFile = '';
+            const player = getPlayer(playerNumber);
+            if (player) player.audioFile = '';
             generatePlayerGrid();
             generateManageGrid();
             renderRoster();
@@ -1151,7 +1281,7 @@
         }
 
         async function playGoalSong(playerNumber) {
-            const player = players[playerNumber - 1];
+            const player = getPlayer(playerNumber);
             if (!player || !player.audioFile) return;
 
             // Toggle off if this player is already playing
@@ -1417,13 +1547,15 @@
         function generateManageGrid() {
             const grid = document.getElementById('uploadGrid');
             grid.innerHTML = '';
+            renderSongLibrary();
 
+            // Every player shows here (including brand-new blank ones, listed last)
             const sorted = players
-                .filter(p => p.name || p.jerseyNumber !== '' || p.audioFile)
+                .slice()
                 .sort((a, b) => {
                     const na = a.jerseyNumber !== '' ? parseInt(a.jerseyNumber) : 999;
                     const nb = b.jerseyNumber !== '' ? parseInt(b.jerseyNumber) : 999;
-                    return na - nb;
+                    return na - nb || a.number - b.number;
                 });
 
             sorted.forEach(player => {
@@ -1443,9 +1575,11 @@
                     // Name & jersey
                     '<div class="player-info">',
                         '<input type="text" placeholder="Player Name" value="' + escAttr(player.name) + '"',
-                        '       oninput="players[' + (player.number-1) + '].name=this.value; generatePlayerGrid(); renderRoster();">',
-                        '<input type="number" placeholder="Jersey #" value="' + escAttr(player.jerseyNumber) + '"',
-                        '       oninput="players[' + (player.number-1) + '].jerseyNumber=this.value; renderRoster();">',
+                        '       oninput="getPlayer(' + player.number + ').name=this.value; generatePlayerGrid(); renderRoster();"',
+                        '       onchange="scheduleSave()">',
+                        '<input type="number" inputmode="numeric" placeholder="Jersey #" value="' + escAttr(player.jerseyNumber) + '"',
+                        '       oninput="getPlayer(' + player.number + ').jerseyNumber=this.value; generatePlayerGrid(); renderRoster();"',
+                        '       onchange="scheduleSave()">',
                     '</div>',
 
                     // Song selector
@@ -1475,11 +1609,125 @@
                         '</div>'
                     ].join('') : '',
 
+                    '<button class="btn btn-danger" style="width:100%;margin-top:6px;opacity:0.85;" onclick="deletePlayer(' + player.number + ')">❌ Delete Player</button>',
+
                     '</div>' // upload-controls
                 ].join('');
 
                 grid.appendChild(row);
             });
+        }
+
+        // ==================== ROSTER EDITING ====================
+        let saveTimer = null;
+        // Save shortly after an edit is finished (onchange fires when a field loses focus)
+        function scheduleSave() {
+            clearTimeout(saveTimer);
+            saveTimer = setTimeout(() => saveToGitHub(), 800);
+        }
+
+        function addPlayer() {
+            const player = makePlayer(nextPlayerNumber());
+            players.push(player);
+            generateManageGrid();
+            const row = document.getElementById('file_' + player.number);
+            if (row) {
+                row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                const nameInput = row.querySelector('input[type=text]');
+                if (nameInput) setTimeout(() => nameInput.focus(), 300);
+            }
+        }
+
+        async function deletePlayer(playerNumber) {
+            const player = getPlayer(playerNumber);
+            if (!player) return;
+            const label = (player.jerseyNumber !== '' ? '#' + player.jerseyNumber + ' ' : '') + (player.name || 'this player');
+            if (!confirm('Delete ' + label + ' from the roster?\n\nThe song file stays in the Song Library.')) return;
+            if (currentPlayingPlayer === playerNumber) stopCurrentAudio();
+            players = players.filter(p => p.number !== playerNumber);
+            if (favorites.delete(playerNumber)) saveFavorites();
+            generatePlayerGrid();
+            generateManageGrid();
+            renderRoster();
+            await saveToGitHub();
+        }
+
+        // ==================== SONG LIBRARY ====================
+        function renderSongLibrary() {
+            const el = document.getElementById('songLibrary');
+            if (!el) return;
+            if (!availableFiles.length) {
+                el.innerHTML = '<div style="opacity:0.6;font-size:13px;text-align:center;padding:10px;">No songs found. Tap Sync in Settings.</div>';
+                return;
+            }
+            el.innerHTML = availableFiles.map(f => {
+                const users = players.filter(p => p.audioFile === f);
+                const isSystem = f === GOAL_HORN_FILE || f === NATIONAL_ANTHEM_FILE;
+                const tag = isSystem
+                    ? '<span class="lib-tag">' + (f === GOAL_HORN_FILE ? 'Goal horn' : 'Anthem') + '</span>'
+                    : (users.length
+                        ? '<span class="lib-tag">' + users.length + ' player' + (users.length > 1 ? 's' : '') + '</span>'
+                        : '<span class="lib-tag lib-unused">unused</span>');
+                return '<div class="lib-row">'
+                     + '<div class="lib-name">' + esc(f) + ' ' + tag + '</div>'
+                     + (isSystem ? ''
+                        : '<button class="btn btn-danger lib-del" data-file="' + escAttr(f) + '" onclick="deleteSong(this.dataset.file)">🗑️</button>')
+                     + '</div>';
+            }).join('');
+        }
+
+        async function deleteSong(filename) {
+            if (!filename) return;
+            if (filename === GOAL_HORN_FILE || filename === NATIONAL_ANTHEM_FILE) {
+                alert('The goal horn and anthem can\'t be deleted.');
+                return;
+            }
+            const users = players.filter(p => p.audioFile === filename);
+            let msg = 'Permanently delete "' + filename + '" from GitHub?';
+            if (users.length) {
+                msg += '\n\nThese players will lose their song (they\'ll play the horn only):\n• '
+                     + users.map(p => (p.jerseyNumber ? '#' + p.jerseyNumber + ' ' : '') + (p.name || 'Unnamed')).join('\n• ');
+            }
+            if (!confirm(msg)) return;
+
+            showUploadOverlay('Deleting ' + filename + '...', 30);
+            try {
+                let sha = fileShas[filename];
+                if (!sha) {
+                    const r = await fetch(AUDIO_API_BASE + '/' + encodeURIComponent(filename), { headers: apiHeaders(), cache: 'no-store' });
+                    if (r.ok) sha = (await r.json()).sha;
+                }
+                if (!sha) throw new Error('Could not find the file on GitHub (try Sync first)');
+
+                const resp = await fetch(AUDIO_API_BASE + '/' + encodeURIComponent(filename), {
+                    method: 'DELETE',
+                    headers: { ...apiHeaders(), 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: 'Delete audio: ' + filename, sha: sha, branch: REPO_BRANCH })
+                });
+                if (!resp.ok) {
+                    const err = await resp.json().catch(() => ({}));
+                    throw new Error(err.message || ('HTTP ' + resp.status));
+                }
+
+                availableFiles = availableFiles.filter(f => f !== filename);
+                delete fileShas[filename];
+                try { localStorage.setItem(FILES_CACHE_KEY, JSON.stringify(availableFiles)); } catch (e) { /* ignore */ }
+                await removeFromOfflineDB(filename);
+
+                showUploadOverlay('Updating players...', 70);
+                users.forEach(p => { p.audioFile = ''; });
+                if (users.length) await saveToGitHub();
+
+                hideUploadOverlay();
+                generatePlayerGrid();
+                generateManageGrid();
+                renderRoster();
+                updateOfflineStatus();
+                setSyncStatus('✅ Deleted ' + filename);
+            } catch (error) {
+                hideUploadOverlay();
+                alert('Delete failed: ' + error.message);
+            }
         }
 
         // HTML escaping helpers
@@ -1488,7 +1736,7 @@
 
         // ==================== CLIP EDITOR ====================
         function openClipEditor(playerNumber) {
-            const player = players[playerNumber - 1];
+            const player = getPlayer(playerNumber);
             if (!player || !player.audioFile) {
                 alert('Assign a song to this player first, then open the clip editor.');
                 return;
@@ -1496,7 +1744,7 @@
             currentClipPlayer = player;
 
             const audio = document.getElementById('clipEditorAudio');
-            audio.src = getAudioUrl(player.audioFile);
+            getAudioUrl(player.audioFile).then(url => { audio.src = url; });
 
             document.getElementById('startTime').value = player.startTime || 0;
             document.getElementById('endTime').value   = player.endTime   || 30;
@@ -1650,7 +1898,17 @@
         }
 
         // ==================== PWA ====================
+        function isStandalone() {
+            return window.navigator.standalone === true
+                || window.matchMedia('(display-mode: standalone)').matches;
+        }
+
         function setupPWA() {
+            if (isStandalone()) {
+                document.documentElement.classList.add('standalone');
+                const info = document.getElementById('installInfo');
+                if (info) info.innerHTML = '✅ Running as a home-screen app. Tap <b>📥 Download All Songs</b> once while online for offline play.';
+            }
             window.addEventListener('beforeinstallprompt', e => {
                 e.preventDefault();
                 deferredPrompt = e;
@@ -1664,6 +1922,76 @@
                 const btn = document.getElementById('installBtn');
                 if (btn) btn.style.display = 'none';
             });
+        }
+
+        function registerServiceWorker() {
+            if (!('serviceWorker' in navigator)) return;
+            // Relative path so it works at a sub-folder URL like /RavensLax/
+            navigator.serviceWorker.register('./service-worker.js')
+                .then(reg => console.log('Service worker registered, scope:', reg.scope))
+                .catch(err => console.warn('Service worker registration failed:', err));
+        }
+
+        // ==================== GAME-DAY: WAKE LOCK ====================
+        let wakeLock = null;
+
+        async function requestWakeLock() {
+            if (!('wakeLock' in navigator) || wakeLock) return;
+            try {
+                wakeLock = await navigator.wakeLock.request('screen');
+                wakeLock.addEventListener('release', () => { wakeLock = null; });
+                console.log('Screen wake lock on');
+            } catch (e) {
+                console.warn('Wake lock request failed:', e);
+            }
+        }
+
+        function setupWakeLock() {
+            if (!('wakeLock' in navigator)) return;
+            // Browsers require a user tap first; re-acquire after switching apps
+            document.addEventListener('pointerdown', requestWakeLock, { passive: true });
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'visible') requestWakeLock();
+            });
+        }
+
+        // ==================== GAME-DAY: STOP / FADE OUT ====================
+        // iOS ignores audio.volume, so test once whether fading is possible
+        const CAN_FADE = (() => {
+            try { const a = new Audio(); a.volume = 0.5; return a.volume === 0.5; }
+            catch (e) { return false; }
+        })();
+        let fadeOutTimer = null;
+
+        function updateStopButton() {
+            const btn = document.getElementById('stopAllBtn');
+            if (!btn) return;
+            btn.classList.toggle('show', currentPlayingPlayer !== null);
+        }
+
+        function fadeOutAndStop() {
+            if (fadeOutTimer) return;
+            const targets = [currentAudio, currentHornAudio].filter(Boolean);
+            if (!CAN_FADE || targets.length === 0) {
+                stopCurrentAudio();
+                updateStopButton();
+                return;
+            }
+            const fadeMs = 1500;
+            const steps  = 15;
+            const startVols = targets.map(a => a.volume);
+            let step = 0;
+            fadeOutTimer = setInterval(() => {
+                step++;
+                targets.forEach((a, i) => { a.volume = Math.max(0, startVols[i] * (1 - step / steps)); });
+                if (step >= steps) {
+                    clearInterval(fadeOutTimer);
+                    fadeOutTimer = null;
+                    stopCurrentAudio();
+                    targets.forEach(a => { a.volume = 1; });
+                    updateStopButton();
+                }
+            }, fadeMs / steps);
         }
 
         function promptInstall() {
@@ -1731,6 +2059,15 @@
             });
         }
         
+        async function removeFromOfflineDB(filename) {
+            if (!offlineDB) return false;
+            return new Promise((resolve) => {
+                const request = offlineDB.transaction(['audioFiles'], 'readwrite').objectStore('audioFiles').delete(filename);
+                request.onsuccess = () => resolve(true);
+                request.onerror = () => resolve(false);
+            });
+        }
+
         async function getAllCachedFiles() {
             if (!offlineDB) return [];
             return new Promise((resolve) => {
@@ -1919,7 +2256,7 @@
             }
         }
 
-        console.log('🎵 Ravens Goal Soundboard v4.6.0 — Offline via IndexedDB (iOS Chrome compatible)');
+        console.log('🎵 Ravens Goal Soundboard v4.9.0 — Offline via IndexedDB (iOS Chrome compatible)');
     </script>
 </body>
 </html>
